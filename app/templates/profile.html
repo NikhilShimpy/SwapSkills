@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Profile - SkillSwap</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+</head>
+<body>
+  <div class="container">
+    <!-- Header Section -->
+    <div class="header">
+      <h2>User Profile</h2>
+      <div class="header-actions">
+        <button form="profileForm" type="submit" class="btn-save">Save</button>
+        <a href="{{ url_for('main.profile') }}" class="btn-discard">Discard</a>
+        <a href="{{ url_for('main.see_request') }}" class="btn-swap">Swap Request</a>
+        <a href="/" class="btn-home">Home</a>
+        <img src="{{ user_data.photo_url or '/static/default-profile.png' }}" class="user-avatar" alt="User Avatar">
+      </div>
+    </div>
+
+    <!-- Profile Form Section -->
+    <form id="profileForm" method="POST" class="profile-form">
+      <!-- Top Row with Name, Location and Large Profile Image -->
+      <div class="top-row">
+        <div class="left-column">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" value="{{ user_data.name or '' }}" required>
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <input type="text" name="location" value="{{ user_data.location or '' }}" required>
+          </div>
+        </div>
+        
+        <!-- Large Profile Image on Right -->
+        <div class="profile-image-container">
+          <img src="{{ user_data.photo_url or '/static/default-profile.png' }}" alt="Profile" class="profile-photo">
+        </div>
+      </div>
+
+      <!-- Rest of the form fields -->
+      <div class="form-group">
+        <label>Skills Offered</label>
+        <input type="text" name="offeredSkill" placeholder="e.g. Python, Design" value="{{ user_data.offeredSkill | join(', ') }}">
+      </div>
+      <div class="form-group">
+        <label>Skills Wanted</label>
+        <input type="text" name="requestedSkill" placeholder="e.g. Public Speaking, React" value="{{ user_data.requestedSkill | join(', ') }}">
+      </div>
+      <div class="form-group">
+        <label>Availability</label>
+        <select name="availability" required>
+          <option value="Weekdays" {% if user_data.availability == "Weekdays" %}selected{% endif %}>Weekdays</option>
+          <option value="Weekends" {% if user_data.availability == "Weekends" %}selected{% endif %}>Weekends</option>
+          <option value="Evenings" {% if user_data.availability == "Evenings" %}selected{% endif %}>Evenings</option>
+          <option value="Mornings" {% if user_data.availability == "Mornings" %}selected{% endif %}>Mornings</option>
+          <option value="Flexible" {% if user_data.availability == "Flexible" %}selected{% endif %}>Flexible</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Profile Visibility</label>
+        <select name="visibility">
+          <option value="Public" {% if user_data.profileVisibility == 'Public' %}selected{% endif %}>Public</option>
+          <option value="Private" {% if user_data.profileVisibility == 'Private' %}selected{% endif %}>Private</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Profile Photo URL</label>
+        <input type="text" name="photo_url" placeholder="Paste Image URL" value="{{ user_data.photo_url or '' }}">
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-save">Save Profile</button>
+        <a href="{{ url_for('main.profile') }}" class="btn-discard">Discard Changes</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

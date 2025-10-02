@@ -1,0 +1,238 @@
+/* Base Styles */
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f9fafb;
+  color: #333;
+}
+
+/* Container */
+.container {
+  max-width: 1250px;
+  margin: auto;
+  padding: 20px;
+}
+
+/* Header */
+.navbar {
+  background: #1e3a8a;
+  color: white;
+  padding: 15px 0;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.navbar .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar .logo {
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.navbar nav a {
+  margin-left: 20px;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.navbar nav a:hover {
+  text-decoration: underline;
+}
+
+/* Search & Filters */
+.search-filter {
+  display: flex;
+  justify-content: space-between;
+  margin: 30px 0;
+  gap: 10px;
+}
+
+.search-form {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+}
+
+.search-form input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.search-form button {
+  padding: 12px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.search-form button:hover {
+  background: #2563eb;
+}
+
+select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 2px solid #d1d5db;
+  font-size: 16px;
+}
+
+
+/* ===================== */
+/* User Grid/List Styles */
+/* ===================== */
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* Individual User Row (Card) */
+.user-row {
+  display: flex;
+  align-items: flex-start;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  padding: 50px 40px;
+  gap: 40px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  min-height: 150px; /* larger card */
+}
+
+
+.user-row:hover {
+  transform: translateY(-3px);
+}
+
+
+/* Left Section: Profile Pic + Name */
+.user-left {
+  flex: 0 0 auto;
+}
+
+.profile-img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #1e3a8a;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* Double Rating */
+
+.user-middle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-name {
+  font-size: 33px;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skills-offered,
+.skills-wanted {
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 4px 0;
+}
+
+.skills-offered strong,
+.skills-wanted strong {
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+
+/* Double Button Size */
+.user-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* center vertically */
+  padding: 20px 0; /* equal top and bottom padding */
+  gap: 6px; /* small space between button and rating */
+  min-width: 140px;
+}
+
+
+
+
+.btn {
+  background: #1d4ed8;
+  color: white;
+  padding: 12px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  width: 100%;
+  text-align: center;
+}
+
+.btn:hover {
+  background: #2563eb;
+}
+
+.rating {
+  font-size: 14px;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+
+/* ===================== */
+/* Pagination */
+/* ===================== */
+.pagination {
+  text-align: center;
+  margin: 30px 0;
+}
+
+.pagination a {
+  display: inline-block;
+  padding: 8px 12px;
+  margin: 0 4px;
+  background-color: white;
+  border: 1px solid #007bff;
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.pagination a.active {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+

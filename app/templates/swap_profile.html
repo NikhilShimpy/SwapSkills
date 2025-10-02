@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ user_data.name }} - Profile</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/swap_profile.css') }}">
+</head>
+<body>
+  <!-- Header -->
+  <header class="navbar">
+    <div class="container">
+      <h1 class="logo">Skill Swap </h1>
+      <nav>
+        <a href="{{ url_for('main.see_request') }}">Swap Request</a>
+
+        <a href="{{ url_for('main.home') }}">Home</a>
+        <a href="{{ url_for('main.profile') }}">
+          <img src="{{ current_user_data.photo_url }}" alt="Avatar" class="avatar">
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="container">
+    <div class="profile-wrapper">
+      <!-- Left Column -->
+      <div class="profile-left">
+        <a href="{{ url_for('main.request_swap', target_user_id=target_user_id) }}" class="request-btn">Request</a>
+        <h2 class="user-name">{{ user_data.name }}</h2>
+        <p><strong>Skills Offered:</strong> {{ user_data.offeredSkill | join(', ') }}</p>
+        <p><strong>Skills Wanted:</strong> {{ user_data.requestedSkill | join(', ') }}</p>
+        <p><strong>Rating:</strong> ⭐ {{ user_data.get('rating', 'N/A') }}/5</p>
+        <p><strong>Feedback:</strong> Coming soon!</p>
+      </div>
+
+      <!-- Right Column -->
+      <div class="profile-right">
+        <img src="{{ user_data.photo_url }}" alt="Profile Image" class="profile-image">
+      </div>
+    </div>
+  </main>
+</body>
+</html>

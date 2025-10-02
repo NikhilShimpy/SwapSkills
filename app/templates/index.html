@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Skill Swap Platform</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header Navigation -->
+  <header class="navbar">
+    <div class="container">
+      <h1 class="logo">SkillSwap</h1>
+      <nav>
+        
+        <a href="{{ url_for('main.see_request') }}">Swap Request</a>
+        <a href="{{ url_for('main.profile') }}">Profile</a>
+        <a href="{{ url_for('main.login') }}">Login</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Search & Filter -->
+    <div class="search-filter">
+      <form method="GET" action="{{ url_for('main.home') }}" class="search-form">
+        <input type="text" name="q" placeholder="Search by name, skills, location..." value="{{ request.args.get('q', '') }}">
+        <button type="submit">Search</button>
+      </form>
+    </div>
+
+    <!-- User Grid - One per row -->
+    <section class="user-list">
+      {% for swap in swaps %}
+      <div class="user-row" onclick="location.href='{{ url_for('main.view_swap_profile', user_id=swap.user_id) }}'">
+  <div class="user-left">
+    <img src="{{ swap.photo_url }}" alt="Profile Photo" class="profile-img">
+  </div>
+
+  <div class="user-middle">
+    <h2 class="user-name">{{ swap.name }}</h2>
+    <p class="skills-offered"><strong>Skills Offered:</strong> {{ swap.offeredSkill | join(', ') }}</p>
+    <p class="skills-wanted"><strong>Skills Wanted:</strong> {{ swap.requestedSkill | join(', ') }}</p>
+  </div>
+
+  <div class="user-right">
+    <a href="{{ url_for('main.request_swap', target_user_id=swap.user_id) }}" class="btn">Request</a>
+    <p class="rating">⭐ {{ swap.rating }}/5</p>
+  </div>
+</div>
+
+
+
+      {% endfor %}
+    </section>
+
+   <!-- Pagination -->
+<div class="pagination">
+  {% if current_page > 1 %}
+    <a href="{{ url_for('main.home', page=current_page-1, q=query) }}">&laquo; Prev</a>
+  {% endif %}
+
+  {% for i in range(1, total_pages + 1) %}
+    <a href="{{ url_for('main.home', page=i, q=query) }}"
+       class="{% if i == current_page %}active{% endif %}">{{ i }}</a>
+  {% endfor %}
+
+  {% if current_page < total_pages %}
+    <a href="{{ url_for('main.home', page=current_page+1, q=query) }}">Next &raquo;</a>
+  {% endif %}
+</div>
+
+  </main>
+</body>
+</html>

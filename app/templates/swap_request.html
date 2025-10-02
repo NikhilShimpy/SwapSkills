@@ -1,0 +1,38 @@
+<!-- templates/swap_request.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Swap Request</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/swap_request.css') }}">
+
+</head>
+<body>
+  <div class="form">
+    <h2>Request a Swap</h2>
+    <form method="POST">
+      <!-- Your Offered Skills -->
+      <label for="your_skill">Choose one of your offered skills:</label>
+      <select name="your_skill" id="your_skill" required>
+        {% for skill in current_user_skills %}
+          <option value="{{ skill }}">{{ skill }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- Their Wanted Skills -->
+      <label for="their_skill">Choose one of their wanted skills:</label>
+      <select name="their_skill" id="their_skill" required>
+        {% for skill in target_user_requested_skills %}
+          <option value="{{ skill }}">{{ skill }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- Message -->
+      <label for="message">Message:</label>
+      <textarea name="message" id="message" rows="4" placeholder="Write your message..."></textarea>
+
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+</body>
+</html>

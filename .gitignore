@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+env/
+venv/
+.venv/
+*.env
+
+# VS Code settings
+.vscode/
+
+# Flask stuff
+instance/
+*.sqlite3
+
+# Firebase service account key (very sensitive!)
+app/serviceAccountKey.json
+
+# OS-specific files
+.DS_Store
+Thumbs.db
