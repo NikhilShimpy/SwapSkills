@@ -2,74 +2,296 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Skill Swap Platform</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading SkillSwap...</p>
+    </div>
+  </div>
+
   <!-- Header Navigation -->
   <header class="navbar">
     <div class="container">
-      <h1 class="logo">SkillSwap</h1>
-      <nav>
-        
-        <a href="{{ url_for('main.see_request') }}">Swap Request</a>
-        <a href="{{ url_for('main.profile') }}">Profile</a>
-        <a href="{{ url_for('main.login') }}">Login</a>
+      <div class="nav-brand">
+        <div class="logo-icon">
+          <i class="fas fa-exchange-alt"></i>
+        </div>
+        <h1 class="logo">SkillSwap</h1>
+      </div>
+      
+      <nav class="nav-links">
+        <a href="{{ url_for('main.see_request') }}" class="nav-link">
+          <i class="fas fa-handshake"></i>
+          <span>Swap Requests</span>
+        </a>
+        <a href="{{ url_for('main.profile') }}" class="nav-link">
+          <i class="fas fa-user"></i>
+          <span>Profile</span>
+        </a>
+        <a href="{{ url_for('main.login') }}" class="nav-link login-btn">
+          <i class="fas fa-sign-in-alt"></i>
+          <span>Login</span>
+        </a>
       </nav>
+
+      <!-- Mobile Menu Button -->
+      <button class="mobile-menu-btn" id="mobileMenuBtn">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
   </header>
 
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <div class="mobile-menu-content">
+      <a href="{{ url_for('main.see_request') }}" class="mobile-nav-link">
+        <i class="fas fa-handshake"></i>
+        <span>Swap Requests</span>
+      </a>
+      <a href="{{ url_for('main.profile') }}" class="mobile-nav-link">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+      </a>
+      <a href="{{ url_for('main.login') }}" class="mobile-nav-link">
+        <i class="fas fa-sign-in-alt"></i>
+        <span>Login</span>
+      </a>
+    </div>
+  </div>
+
   <main class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">Connect. Learn. <span class="gradient-text">Grow Together.</span></h1>
+        <p class="hero-subtitle">Exchange skills with talented people in your community and unlock new opportunities</p>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-number" id="usersCount">500+</span>
+            <span class="stat-label">Active Users</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number" id="swapsCount">1200+</span>
+            <span class="stat-label">Successful Swaps</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number" id="skillsCount">150+</span>
+            <span class="stat-label">Skills Available</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="floating-cards">
+          <div class="floating-card card-1">
+            <i class="fas fa-code"></i>
+            <span>Web Development</span>
+          </div>
+          <div class="floating-card card-2">
+            <i class="fas fa-paint-brush"></i>
+            <span>Design</span>
+          </div>
+          <div class="floating-card card-3">
+            <i class="fas fa-language"></i>
+            <span>Languages</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Search & Filter -->
-    <div class="search-filter">
-      <form method="GET" action="{{ url_for('main.home') }}" class="search-form">
-        <input type="text" name="q" placeholder="Search by name, skills, location..." value="{{ request.args.get('q', '') }}">
-        <button type="submit">Search</button>
-      </form>
+    <section class="search-section">
+      <div class="search-container">
+        <form method="GET" action="{{ url_for('main.home') }}" class="search-form">
+          <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" name="q" placeholder="Search by name, skills, location..." value="{{ request.args.get('q', '') }}" class="search-input">
+            <button type="button" class="search-clear" id="searchClear">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <button type="submit" class="search-btn">
+            <span>Search</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </form>
+        
+        <div class="filter-tags">
+          <button class="filter-tag active">All Skills</button>
+          <button class="filter-tag">Design</button>
+          <button class="filter-tag">Development</button>
+          <button class="filter-tag">Marketing</button>
+          <button class="filter-tag">Languages</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Count -->
+    <div class="results-info">
+      <p>Showing <span id="resultsCount">{{ swaps|length }}</span> available skill swaps</p>
     </div>
 
-    <!-- User Grid - One per row -->
-    <section class="user-list">
+    <!-- User Grid -->
+    <section class="user-grid">
       {% for swap in swaps %}
-      <div class="user-row" onclick="location.href='{{ url_for('main.view_swap_profile', user_id=swap.user_id) }}'">
-  <div class="user-left">
-    <img src="{{ swap.photo_url }}" alt="Profile Photo" class="profile-img">
-  </div>
+      <div class="user-card" data-user-id="{{ swap.user_id }}">
+        
+        <div class="card-header">
+          <div class="user-avatar">
+            <img src="{{ swap.photo_url }}" alt="{{ swap.name }}" class="profile-img" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face'">
+            <div class="online-indicator"></div>
+          </div>
+          
+          <div class="user-meta">
+            <h3 class="user-name">{{ swap.name }}</h3>
+            <div class="user-location">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>New York, NY</span>
+            </div>
+          </div>
+          
+          <div class="rating-badge">
+            <i class="fas fa-star"></i>
+            <span>{{ swap.rating }}/5</span>
+          </div>
+        </div>
 
-  <div class="user-middle">
-    <h2 class="user-name">{{ swap.name }}</h2>
-    <p class="skills-offered"><strong>Skills Offered:</strong> {{ swap.offeredSkill | join(', ') }}</p>
-    <p class="skills-wanted"><strong>Skills Wanted:</strong> {{ swap.requestedSkill | join(', ') }}</p>
-  </div>
+        <div class="skills-section">
+          <div class="skill-category">
+            <div class="category-header">
+              <i class="fas fa-share skill-icon offered"></i>
+              <h4>Offering</h4>
+            </div>
+            <div class="skill-tags">
+              {% for skill in swap.offeredSkill %}
+              <span class="skill-tag offered">{{ skill }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          
+          <div class="skill-category">
+            <div class="category-header">
+              <i class="fas fa-hand-holding-heart skill-icon wanted"></i>
+              <h4>Seeking</h4>
+            </div>
+            <div class="skill-tags">
+              {% for skill in swap.requestedSkill %}
+              <span class="skill-tag wanted">{{ skill }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
 
-  <div class="user-right">
-    <a href="{{ url_for('main.request_swap', target_user_id=swap.user_id) }}" class="btn">Request</a>
-    <p class="rating">⭐ {{ swap.rating }}/5</p>
-  </div>
-</div>
-
-
-
+        <div class="card-footer">
+          <a href="{{ url_for('main.request_swap', target_user_id=swap.user_id) }}" class="request-btn">
+            <i class="fas fa-handshake"></i>
+            <span>Request Swap</span>
+          </a>
+          <button class="bookmark-btn" data-user-id="{{ swap.user_id }}">
+            <i class="far fa-bookmark"></i>
+          </button>
+        </div>
+      </div>
       {% endfor %}
     </section>
 
-   <!-- Pagination -->
-<div class="pagination">
-  {% if current_page > 1 %}
-    <a href="{{ url_for('main.home', page=current_page-1, q=query) }}">&laquo; Prev</a>
-  {% endif %}
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="empty-icon">
+        <i class="fas fa-search"></i>
+      </div>
+      <h3>No results found</h3>
+      <p>Try adjusting your search or filters to find more skill swaps</p>
+      <button class="clear-filters-btn" id="clearFiltersBtn">Clear All Filters</button>
+    </div>
 
-  {% for i in range(1, total_pages + 1) %}
-    <a href="{{ url_for('main.home', page=i, q=query) }}"
-       class="{% if i == current_page %}active{% endif %}">{{ i }}</a>
-  {% endfor %}
+    <!-- Pagination -->
+    <div class="pagination-container">
+      <div class="pagination">
+        {% if current_page > 1 %}
+          <a href="{{ url_for('main.home', page=current_page-1, q=query) }}" class="pagination-btn prev">
+            <i class="fas fa-chevron-left"></i>
+            <span>Previous</span>
+          </a>
+        {% endif %}
 
-  {% if current_page < total_pages %}
-    <a href="{{ url_for('main.home', page=current_page+1, q=query) }}">Next &raquo;</a>
-  {% endif %}
-</div>
+        <div class="pagination-numbers">
+          {% for i in range(1, total_pages + 1) %}
+            <a href="{{ url_for('main.home', page=i, q=query) }}"
+               class="pagination-number {% if i == current_page %}active{% endif %}">{{ i }}</a>
+          {% endfor %}
+        </div>
 
+        {% if current_page < total_pages %}
+          <a href="{{ url_for('main.home', page=current_page+1, q=query) }}" class="pagination-btn next">
+            <span>Next</span>
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        {% endif %}
+      </div>
+    </div>
   </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="logo-icon">
+            <i class="fas fa-exchange-alt"></i>
+          </div>
+          <h3>SkillSwap</h3>
+          <p>Connecting talents, building communities</p>
+        </div>
+        
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Platform</h4>
+            <a href="#">How it works</a>
+            <a href="#">Success Stories</a>
+            <a href="#">Community Guidelines</a>
+          </div>
+          <div class="footer-column">
+            <h4>Support</h4>
+            <a href="#">Help Center</a>
+            <a href="#">Contact Us</a>
+            <a href="#">Safety Tips</a>
+          </div>
+          <div class="footer-column">
+            <h4>Company</h4>
+            <a href="#">About Us</a>
+            <a href="#">Careers</a>
+            <a href="#">Blog</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2024 SkillSwap. All rights reserved.</p>
+        <div class="social-links">
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Back to Top Button -->
+  <button class="back-to-top" id="backToTop">
+    <i class="fas fa-chevron-up"></i>
+  </button>
+
+  <script src="{{ url_for('static', filename='js/index.js') }}"></script>
 </body>
 </html>
