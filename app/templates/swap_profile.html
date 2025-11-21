@@ -2,43 +2,219 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>{{ user_data.name }} - Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ user_data.name }} - Profile | SkillSwap</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/swap_profile.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading Profile...</p>
+    </div>
+  </div>
+
   <!-- Header -->
   <header class="navbar">
     <div class="container">
-      <h1 class="logo">Skill Swap </h1>
-      <nav>
-        <a href="{{ url_for('main.see_request') }}">Swap Request</a>
-
-        <a href="{{ url_for('main.home') }}">Home</a>
-        <a href="{{ url_for('main.profile') }}">
-          <img src="{{ current_user_data.photo_url }}" alt="Avatar" class="avatar">
+      <div class="nav-brand">
+        <div class="logo-icon">
+          <i class="fas fa-exchange-alt"></i>
+        </div>
+        <h1 class="logo">SkillSwap</h1>
+      </div>
+      
+      <nav class="nav-links">
+        <a href="{{ url_for('main.home') }}" class="nav-link">
+          <i class="fas fa-home"></i>
+          <span>Home</span>
+        </a>
+        <a href="{{ url_for('main.see_request') }}" class="nav-link">
+          <i class="fas fa-handshake"></i>
+          <span>Swap Requests</span>
+        </a>
+        <a href="{{ url_for('main.profile') }}" class="nav-link profile-link">
+          <div class="avatar-container">
+            <img src="{{ current_user_data.photo_url }}" alt="Avatar" class="avatar">
+            <div class="online-indicator"></div>
+          </div>
+          <span>My Profile</span>
         </a>
       </nav>
     </div>
   </header>
 
-  <!-- Content -->
+  <!-- Main Content -->
   <main class="container">
-    <div class="profile-wrapper">
-      <!-- Left Column -->
-      <div class="profile-left">
-        <a href="{{ url_for('main.request_swap', target_user_id=target_user_id) }}" class="request-btn">Request</a>
-        <h2 class="user-name">{{ user_data.name }}</h2>
-        <p><strong>Skills Offered:</strong> {{ user_data.offeredSkill | join(', ') }}</p>
-        <p><strong>Skills Wanted:</strong> {{ user_data.requestedSkill | join(', ') }}</p>
-        <p><strong>Rating:</strong> ⭐ {{ user_data.get('rating', 'N/A') }}/5</p>
-        <p><strong>Feedback:</strong> Coming soon!</p>
-      </div>
+    <div class="profile-hero">
+      <div class="profile-background"></div>
+      
+      <div class="profile-content">
+        <!-- Profile Header -->
+        <div class="profile-header">
+          <div class="profile-image-container">
+            <img src="{{ user_data.photo_url }}" alt="{{ user_data.name }}" class="profile-image">
+            <div class="profile-badge">
+              <i class="fas fa-check-circle"></i>
+            </div>
+          </div>
+          
+          <div class="profile-info">
+            <div class="profile-meta">
+              <h1 class="user-name">{{ user_data.name }}</h1>
+              <div class="rating-display">
+                <div class="stars">
+                  {% for i in range(5) %}
+                    {% if i < user_data.get('rating', 0)|int %}
+                    <i class="fas fa-star"></i>
+                    {% else %}
+                    <i class="far fa-star"></i>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                <span class="rating-text">{{ user_data.get('rating', 'N/A') }}/5 Rating</span>
+              </div>
+              <div class="profile-stats">
+                <div class="stat">
+                  <span class="stat-number">24</span>
+                  <span class="stat-label">Swaps</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-number">18</span>
+                  <span class="stat-label">Completed</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-number">96%</span>
+                  <span class="stat-label">Success Rate</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="profile-actions">
+              <a href="{{ url_for('main.request_swap', target_user_id=target_user_id) }}" class="request-btn">
+                <i class="fas fa-handshake"></i>
+                <span>Request Swap</span>
+              </a>
+              <button class="message-btn">
+                <i class="fas fa-envelope"></i>
+                <span>Message</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
-      <!-- Right Column -->
-      <div class="profile-right">
-        <img src="{{ user_data.photo_url }}" alt="Profile Image" class="profile-image">
+        <!-- Profile Details -->
+        <div class="profile-details">
+          <!-- Skills Offered Section -->
+          <div class="skills-section">
+            <div class="section-header">
+              <div class="section-icon">
+                <i class="fas fa-share"></i>
+              </div>
+              <h2>Skills Offered</h2>
+            </div>
+            <div class="skills-grid">
+              {% for skill in user_data.offeredSkill %}
+              <div class="skill-card offered">
+                <div class="skill-icon">
+                  <i class="fas fa-check"></i>
+                </div>
+                <span class="skill-name">{{ skill }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Skills Wanted Section -->
+          <div class="skills-section">
+            <div class="section-header">
+              <div class="section-icon">
+                <i class="fas fa-hand-holding-heart"></i>
+              </div>
+              <h2>Skills Wanted</h2>
+            </div>
+            <div class="skills-grid">
+              {% for skill in user_data.requestedSkill %}
+              <div class="skill-card wanted">
+                <div class="skill-icon">
+                  <i class="fas fa-search"></i>
+                </div>
+                <span class="skill-name">{{ skill }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- About Section -->
+          <div class="about-section">
+            <div class="section-header">
+              <div class="section-icon">
+                <i class="fas fa-user"></i>
+              </div>
+              <h2>About</h2>
+            </div>
+            <div class="about-content">
+              <p>Passionate about sharing knowledge and learning new skills. I believe in the power of community and collaborative growth through skill exchange.</p>
+              <div class="about-details">
+                <div class="detail-item">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>New York, NY</span>
+                </div>
+                <div class="detail-item">
+                  <i class="fas fa-clock"></i>
+                  <span>Available Evenings & Weekends</span>
+                </div>
+                <div class="detail-item">
+                  <i class="fas fa-calendar"></i>
+                  <span>Member since 2023</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feedback Section -->
+          <div class="feedback-section">
+            <div class="section-header">
+              <div class="section-icon">
+                <i class="fas fa-comments"></i>
+              </div>
+              <h2>Community Feedback</h2>
+            </div>
+            <div class="feedback-content">
+              <div class="feedback-placeholder">
+                <i class="fas fa-comment-dots"></i>
+                <h3>Feedback Coming Soon!</h3>
+                <p>We're working on a feedback system to help build trust within our community.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="logo-icon">
+            <i class="fas fa-exchange-alt"></i>
+          </div>
+          <h3>SkillSwap</h3>
+          <p>Connecting talents, building communities</p>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2024 SkillSwap. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/swap_profile.js') }}"></script>
 </body>
 </html>
