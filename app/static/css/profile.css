@@ -57,6 +57,15 @@ body {
   gap: 12px;
 }
 
+.edit-indicator {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: none;
+}
+
 .header-left p {
   margin: 4px 0 0 0;
   opacity: 0.9;
@@ -105,7 +114,9 @@ body {
 .btn-discard,
 .btn-swap,
 .btn-home,
-.btn-auto-detect {
+.btn-auto-detect,
+.btn-edit,
+.btn-upload {
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 0.95rem;
@@ -137,6 +148,18 @@ body {
 
 .btn-discard:hover {
   background: #e2e6ea;
+  transform: translateY(-1px);
+}
+
+.btn-edit {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-edit:hover {
+  background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
 }
 
@@ -175,6 +198,25 @@ body {
 .btn-auto-detect:hover {
   background: #3ab8dd;
   transform: translateY(-1px);
+}
+
+.btn-upload {
+  background: var(--primary);
+  color: white;
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.btn-upload:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-upload:disabled {
+  background: var(--gray);
+  cursor: not-allowed;
+  transform: none;
 }
 
 .notification-badge {
@@ -285,6 +327,13 @@ body {
   box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
 }
 
+.input-with-icon input:disabled,
+.input-with-icon select:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .input-hint {
   font-size: 0.85rem;
   color: var(--gray);
@@ -318,6 +367,49 @@ body {
   font-weight: 500;
 }
 
+/* Skills Input */
+.skills-input-container {
+  position: relative;
+}
+
+.skills-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.skill-tag {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: fadeIn 0.3s ease;
+}
+
+.remove-skill {
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.remove-skill:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
 /* Suggestions Dropdown */
 .suggestions-dropdown {
   position: absolute;
@@ -332,6 +424,7 @@ body {
   overflow-y: auto;
   z-index: 1000;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: none;
 }
 
 .suggestion-item {
@@ -416,6 +509,35 @@ body {
   transform: scale(1.05);
 }
 
+/* Upload Progress */
+.upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--gray-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+#progressText {
+  font-size: 0.85rem;
+  color: var(--gray);
+  min-width: 40px;
+}
+
 /* Visibility Toggle */
 .visibility-toggle {
   display: flex;
@@ -481,6 +603,18 @@ body {
 }
 .social-icon.github { background: #333; }
 
+.no-social-links {
+  text-align: center;
+  padding: 20px;
+  color: var(--gray);
+}
+
+.no-social-links i {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
 /* Form Actions */
 .form-actions {
   display: flex;
@@ -489,6 +623,22 @@ body {
   padding: 24px 32px;
   background: var(--light);
   border-top: 1px solid var(--border);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
 }
 
 /* Responsive Design */
@@ -562,4 +712,130 @@ body {
   .card-body {
     padding: 20px;
   }
+}
+
+/* Add these to your existing profile.css file */
+
+.edit-indicator {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: none;
+}
+
+.btn-edit {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-edit:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-upload {
+  background: var(--primary);
+  color: white;
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.btn-upload:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-upload:disabled {
+  background: var(--gray);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--gray-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.skills-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.skill-tag {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: fadeIn 0.3s ease;
+}
+
+.remove-skill {
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.remove-skill:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.no-social-links {
+  text-align: center;
+  padding: 20px;
+  color: var(--gray);
+}
+
+.no-social-links i {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+.input-with-icon input:disabled,
+.input-with-icon select:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
