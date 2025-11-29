@@ -1,33 +1,98 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign In</title>
+  <title>Sign In - SkillSwap</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-  <!-- Firebase Scripts First -->
-<script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
-
-<!-- Your JS -->
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-  <div class="form-box">
-    <h2>Sign In</h2>
-    <div class="input-box">
-      <label>Email</label>
-      <input type="email" id="email" placeholder="Enter email">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="logo">
+          <i class="fas fa-exchange-alt"></i>
+          <span>SkillSwap</span>
+        </div>
+        <h2>Welcome Back</h2>
+        <p>Sign in to continue your skill journey</p>
+      </div>
+
+      <!-- Email/Password Sign In -->
+      <form class="auth-form" id="emailSignInForm">
+        <div class="input-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="Enter your email" required>
+        </div>
+        
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Enter your password" required>
+          <div class="forgot-password">
+            <a href="#" onclick="showForgotPassword()">Forgot password?</a>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="signInBtn">
+          <i class="fas fa-sign-in-alt"></i>
+          Sign In
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="divider">
+        <span>Or continue with</span>
+      </div>
+
+      <!-- Social Sign In -->
+      <div class="social-auth">
+        <button type="button" class="btn btn-google" onclick="signInWithGoogle()" id="googleSignInBtn">
+          <i class="fab fa-google"></i>
+          Continue with Google
+        </button>
+      </div>
+
+      <!-- Forgot Password Form -->
+      <div class="forgot-password-form" id="forgotPasswordForm" style="display: none;">
+        <div class="input-group">
+          <label for="resetEmail">Email Address</label>
+          <input type="email" id="resetEmail" placeholder="Enter your email" required>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-full" onclick="resetPassword()">
+          <i class="fas fa-paper-plane"></i>
+          Send Reset Link
+        </button>
+
+        <button type="button" class="btn btn-text" onclick="hideForgotPassword()">
+          <i class="fas fa-arrow-left"></i>
+          Back to Sign In
+        </button>
+      </div>
+
+      <div class="auth-footer">
+        <p>Don't have an account? <a href="{{ url_for('main.signup') }}">Sign Up</a></p>
+      </div>
     </div>
-    <div class="input-box">
-      <label>Password</label>
-      <input type="password" id="password" placeholder="Enter password">
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+      <div class="loading-spinner"></div>
+      <p>Processing your request...</p>
     </div>
-    <button onclick="signIn()">Sign In</button>
-    <p>Don't have an account? <a href="{{ url_for('main.signup') }}">Sign Up</a></p>
+
+    <!-- Messages Container -->
+    <div id="messageContainer"></div>
   </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
+  
+  <!-- Your JS -->
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

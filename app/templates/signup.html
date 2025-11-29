@@ -3,30 +3,82 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign Up</title>
+  <title>Sign Up - SkillSwap</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-  <!-- Firebase Scripts First -->
-<script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
-
-<!-- Your JS -->
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-  <div class="form-box">
-    <h2>Create Account</h2>
-    <div class="input-box">
-      <label>Email</label>
-      <input type="email" id="email" placeholder="Enter email">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="logo">
+          <i class="fas fa-exchange-alt"></i>
+          <span>SkillSwap</span>
+        </div>
+        <h2>Create Your Account</h2>
+        <p>Join our community of skill exchangers</p>
+      </div>
+
+      <!-- Email/Password Sign Up -->
+      <form class="auth-form" id="emailSignUpForm">
+        <div class="input-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="Enter your email" required>
+        </div>
+        
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Create a password" required minlength="6">
+          <div class="password-strength" id="passwordStrength"></div>
+        </div>
+
+        <div class="input-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+          <div class="password-match" id="passwordMatch"></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="signUpBtn">
+          <i class="fas fa-user-plus"></i>
+          Create Account
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="divider">
+        <span>Or continue with</span>
+      </div>
+
+      <!-- Social Sign Up -->
+      <div class="social-auth">
+        <button class="btn btn-google" onclick="signInWithGoogle()">
+          <i class="fab fa-google"></i>
+          Continue with Google
+        </button>
+      </div>
+
+      <div class="auth-footer">
+        <p>Already have an account? <a href="{{ url_for('main.login') }}">Sign In</a></p>
+        <div class="terms">
+          By continuing, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+        </div>
+      </div>
     </div>
-    <div class="input-box">
-      <label>Password</label>
-      <input type="password" id="password" placeholder="Enter password">
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+      <div class="loading-spinner"></div>
+      <p>Creating your account...</p>
     </div>
-    <button onclick="signUp()">Sign Up</button>
-    <p>Already have an account? <a href="{{ url_for('main.login') }}">Sign In</a></p>
   </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
+  
+  <!-- Your JS -->
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

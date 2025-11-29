@@ -1,3 +1,4 @@
+
 // setting up firebase with our website
 const firebaseApp = firebase.initializeApp({
    apiKey: "AIzaSyDS8tGustKzem7u8U5ntcLMimgLJC_fQWI",
@@ -71,4 +72,3 @@ const signIn = () => {
       }
     });
 };
-

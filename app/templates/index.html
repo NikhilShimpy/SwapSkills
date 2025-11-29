@@ -7,6 +7,35 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+   <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
+    <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDS8tGustKzem7u8U5ntcLMimgLJC_fQWI",
+      authDomain: "skillswap-21922.firebaseapp.com",
+      projectId: "skillswap-21922",
+      storageBucket: "skillswap-21922.firebasestorage.app",
+      messagingSenderId: "942449711732",
+      appId: "1:942449711732:web:ed1ac7c996deb34b998f21",
+      measurementId: "G-DL61KXD2YR"
+    };
+
+    // Initialize Firebase
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        if (typeof firebase !== 'undefined') {
+          firebase.initializeApp(firebaseConfig);
+          console.log("Firebase initialized in index.html");
+        }
+      } catch (error) {
+        console.error("Firebase initialization error:", error);
+      }
+    });
+  </script>
 </head>
 <body>
   <!-- Loading Screen -->
@@ -28,6 +57,10 @@
       </div>
       
       <nav class="nav-links">
+        <a href="{{ url_for('main.app') }}" class="nav-link active">
+          <i class="fas fa-home"></i>
+          <span>Home</span>
+        </a>
         <a href="{{ url_for('main.see_request') }}" class="nav-link">
           <i class="fas fa-handshake"></i>
           <span>Swap Requests</span>
@@ -36,9 +69,9 @@
           <i class="fas fa-user"></i>
           <span>Profile</span>
         </a>
-        <a href="{{ url_for('main.login') }}" class="nav-link login-btn">
-          <i class="fas fa-sign-in-alt"></i>
-          <span>Login</span>
+        <a href="{{ url_for('main.logout') }}" class="nav-link login-btn">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
         </a>
       </nav>
 
@@ -54,6 +87,10 @@
   <!-- Mobile Menu -->
   <div class="mobile-menu" id="mobileMenu">
     <div class="mobile-menu-content">
+      <a href="{{ url_for('main.app') }}" class="mobile-nav-link">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+      </a>
       <a href="{{ url_for('main.see_request') }}" class="mobile-nav-link">
         <i class="fas fa-handshake"></i>
         <span>Swap Requests</span>
@@ -62,20 +99,52 @@
         <i class="fas fa-user"></i>
         <span>Profile</span>
       </a>
-      <a href="{{ url_for('main.login') }}" class="mobile-nav-link">
-        <i class="fas fa-sign-in-alt"></i>
-        <span>Login</span>
+      <a href="{{ url_for('main.logout') }}" class="mobile-nav-link">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Logout</span>
       </a>
     </div>
   </div>
 
   <main class="container">
+    <!-- Welcome Section -->
+    <!-- <section class="welcome-section">
+      <div class="welcome-content">
+        <h1>Welcome to SkillSwap!</h1>
+        <p>Discover amazing skills and connect with talented people in our community.</p>
+        
+        {% if ai_recommendations %}
+        <div class="ai-recommendations-badge">
+          <i class="fas fa-robot"></i>
+          <span>AI has {{ ai_recommendations|length }} recommendations for you!</span>
+        </div>
+        {% endif %}
+      </div>
+      
+      <div class="stats-overview">
+        <div class="stat-card">
+          <i class="fas fa-users"></i>
+          <div class="stat-info">
+            <div class="stat-number">{{ total_users }}+</div>
+            <div class="stat-label">Active Users</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-handshake"></i>
+          <div class="stat-info">
+            <div class="stat-number">{{ swaps|length }}</div>
+            <div class="stat-label">Available Swaps</div>
+          </div>
+        </div>
+      </div>
+    </section> -->
+
     
 
     <!-- Search & Filter -->
     <section class="search-section">
       <div class="search-container">
-        <form method="GET" action="{{ url_for('main.home') }}" class="search-form">
+        <form method="GET" action="{{ url_for('main.app') }}" class="search-form">
           <div class="search-input-wrapper">
             <i class="fas fa-search search-icon"></i>
             <input type="text" name="q" placeholder="Search by name, skills, location..." value="{{ request.args.get('q', '') }}" class="search-input">
@@ -90,25 +159,24 @@
         </form>
         
         <div class="filter-tags">
-          <button class="filter-tag active">All Skills</button>
-          <button class="filter-tag">Design</button>
-          <button class="filter-tag">Development</button>
-          <button class="filter-tag">Marketing</button>
-          <button class="filter-tag">Languages</button>
+          <button class="filter-tag active" data-category="all">All Skills</button>
+          <button class="filter-tag" data-category="design">Design</button>
+          <button class="filter-tag" data-category="development">Development</button>
+          <button class="filter-tag" data-category="marketing">Marketing</button>
+          <button class="filter-tag" data-category="languages">Languages</button>
         </div>
       </div>
     </section>
 
     <!-- Results Count -->
     <div class="results-info">
-      <p>Showing <span id="resultsCount">{{ swaps|length }}</span> available skill swaps</p>
+      <p>Showing <span id="resultsCount">{{ swaps|length }}</span> available skill swaps out of {{ total_users }} users</p>
     </div>
 
     <!-- User Grid -->
     <section class="user-grid">
       {% for swap in swaps %}
       <div class="user-card" data-user-id="{{ swap.user_id }}">
-        
         <div class="card-header">
           <div class="user-avatar">
             <img src="{{ swap.photo_url }}" alt="{{ swap.name }}" class="profile-img" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face'">
@@ -119,7 +187,7 @@
             <h3 class="user-name">{{ swap.name }}</h3>
             <div class="user-location">
               <i class="fas fa-map-marker-alt"></i>
-              <span>New York, NY</span>
+              <span>Available for swap</span>
             </div>
           </div>
           
@@ -179,10 +247,11 @@
     </div>
 
     <!-- Pagination -->
+    {% if total_pages > 1 %}
     <div class="pagination-container">
       <div class="pagination">
         {% if current_page > 1 %}
-          <a href="{{ url_for('main.home', page=current_page-1, q=query) }}" class="pagination-btn prev">
+          <a href="{{ url_for('main.app', page=current_page-1, q=query) }}" class="pagination-btn prev">
             <i class="fas fa-chevron-left"></i>
             <span>Previous</span>
           </a>
@@ -190,19 +259,20 @@
 
         <div class="pagination-numbers">
           {% for i in range(1, total_pages + 1) %}
-            <a href="{{ url_for('main.home', page=i, q=query) }}"
+            <a href="{{ url_for('main.app', page=i, q=query) }}"
                class="pagination-number {% if i == current_page %}active{% endif %}">{{ i }}</a>
           {% endfor %}
         </div>
 
         {% if current_page < total_pages %}
-          <a href="{{ url_for('main.home', page=current_page+1, q=query) }}" class="pagination-btn next">
+          <a href="{{ url_for('main.app', page=current_page+1, q=query) }}" class="pagination-btn next">
             <span>Next</span>
             <i class="fas fa-chevron-right"></i>
           </a>
         {% endif %}
       </div>
     </div>
+    {% endif %}
   </main>
 
   <!-- Footer -->
@@ -240,7 +310,7 @@
       </div>
       
       <div class="footer-bottom">
-        <p>&copy; 2024 SkillSwap. All rights reserved.</p>
+        <p>&copy; 2024 SkillSwap. All rights reserved. Developed by Nikhil Shimpy & Team</p>
         <div class="social-links">
           <a href="#"><i class="fab fa-twitter"></i></a>
           <a href="#"><i class="fab fa-facebook"></i></a>

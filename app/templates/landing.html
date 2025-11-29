@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkillSwap - Connect, Exchange & Learn Skills</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Header -->
+  <header class="landing-header">
+    <div class="container">
+      <div class="nav-brand">
+        <div class="logo-icon">
+          <i class="fas fa-exchange-alt"></i>
+        </div>
+        <h1 class="logo">SkillSwap</h1>
+      </div>
+      <nav class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="{{ url_for('main.login') }}" class="nav-link login-btn">
+          <i class="fas fa-sign-in-alt"></i>
+          <span>Login</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          <span class="gradient-text">Connect, Exchange</span><br>
+          & Learn Skills Together
+        </h1>
+        <p class="hero-subtitle">
+          Join a community-driven platform where you can share your skills, learn from others, 
+          and grow collaboratively. Swap expertise, build connections, and unlock new opportunities.
+        </p>
+        <div class="hero-actions">
+          <a href="{{ url_for('main.signup') }}" class="btn btn-primary">
+            <i class="fas fa-rocket"></i>
+            Get Started Free
+          </a>
+          <a href="#how-it-works" class="btn btn-secondary">
+            <i class="fas fa-play-circle"></i>
+            See How It Works
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-number" id="usersCount">500+</div>
+            <div class="stat-label">Active Users</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number" id="swapsCount">1.2k+</div>
+            <div class="stat-label">Successful Swaps</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number" id="skillsCount">150+</div>
+            <div class="stat-label">Skills Available</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="floating-cards">
+          <div class="floating-card card-1">
+            <i class="fas fa-code"></i>
+            <span>Web Development</span>
+          </div>
+          <div class="floating-card card-2">
+            <i class="fas fa-paint-brush"></i>
+            <span>Graphic Design</span>
+          </div>
+          <div class="floating-card card-3">
+            <i class="fas fa-language"></i>
+            <span>Language Learning</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="features">
+    <div class="container">
+      <div class="section-header">
+        <h2>Why Choose SkillSwap?</h2>
+        <p>Discover the features that make skill sharing effortless and rewarding</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <h3>Community Driven</h3>
+          <p>Join a vibrant community of learners and experts sharing knowledge across various domains.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-handshake"></i>
+          </div>
+          <h3>Skill Exchange</h3>
+          <p>Trade your expertise for new skills. No money involved - just pure knowledge sharing.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-star"></i>
+          </div>
+          <h3>Rating System</h3>
+          <p>Build your reputation with our transparent rating and feedback system.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <h3>Safe & Secure</h3>
+          <p>Your privacy and security are our top priorities with end-to-end encryption.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-mobile-alt"></i>
+          </div>
+          <h3>Mobile Friendly</h3>
+          <p>Access SkillSwap from any device, anywhere, at any time.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-bolt"></i>
+          </div>
+          <h3>AI Matching</h3>
+          <p>Smart algorithm suggests perfect skill swap partners based on your interests.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section id="how-it-works" class="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <h2>How SkillSwap Works</h2>
+        <p>Get started in just a few simple steps</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Create Your Profile</h3>
+            <p>Sign up and list the skills you can offer and what you want to learn.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Find Partners</h3>
+            <p>Browse through skilled individuals or let our AI suggest perfect matches.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Request Swaps</h3>
+            <p>Send swap requests and coordinate learning sessions that work for both.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h3>Learn & Grow</h3>
+            <p>Exchange skills, provide feedback, and build your learning network.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Start Your Skill Journey?</h2>
+        <p>Join thousands of learners already exchanging skills on our platform</p>
+        <div class="cta-actions">
+          <a href="{{ url_for('main.signup') }}" class="btn btn-primary btn-large">
+            <i class="fas fa-user-plus"></i>
+            Sign Up Free
+          </a>
+          <a href="{{ url_for('main.login') }}" class="btn btn-secondary btn-large">
+            <i class="fas fa-sign-in-alt"></i>
+            Login
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="logo-icon">
+            <i class="fas fa-exchange-alt"></i>
+          </div>
+          <h3>SkillSwap</h3>
+          <p>Connecting talents, building communities</p>
+        </div>
+        
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Platform</h4>
+            <a href="#how-it-works">How it works</a>
+            <a href="#">Success Stories</a>
+            <a href="#">Community Guidelines</a>
+          </div>
+          <div class="footer-column">
+            <h4>Support</h4>
+            <a href="#">Help Center</a>
+            <a href="#">Contact Us</a>
+            <a href="#">Safety Tips</a>
+          </div>
+          <div class="footer-column">
+            <h4>Company</h4>
+            <a href="#">About Us</a>
+            <a href="#">Careers</a>
+            <a href="#">Blog</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2024 SkillSwap. All rights reserved. Developed by Nikhil Shimpy & Team</p>
+        <div class="social-links">
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+</body>
+</html>

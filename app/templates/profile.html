@@ -4,79 +4,236 @@
   <meta charset="UTF-8">
   <title>User Profile - SkillSwap</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="container">
     <!-- Header Section -->
     <div class="header">
-      <h2>User Profile</h2>
+      <div class="header-left">
+        <h1><i class="fas fa-user-circle"></i> Profile Settings</h1>
+        <p>Manage your personal information and preferences</p>
+      </div>
       <div class="header-actions">
-        <button form="profileForm" type="submit" class="btn-save">Save</button>
-        <a href="{{ url_for('main.profile') }}" class="btn-discard">Discard</a>
-        <a href="{{ url_for('main.see_request') }}" class="btn-swap">Swap Request</a>
-        <a href="/" class="btn-home">Home</a>
-        <img src="{{ user_data.photo_url or '/static/default-profile.png' }}" class="user-avatar" alt="User Avatar">
+        <a href="{{ url_for('main.see_request') }}" class="btn-swap">
+          <i class="fas fa-exchange-alt"></i> Swap Requests
+          <span class="notification-badge">3</span>
+        </a>
+        <a href="/" class="btn-home">
+          <i class="fas fa-home"></i> Home
+        </a>
+        <div class="user-avatar-container">
+          <img src="{{ user_data.photo_url or '/static/default-profile.png' }}" class="user-avatar" alt="User Avatar">
+          <div class="online-status"></div>
+        </div>
       </div>
     </div>
 
     <!-- Profile Form Section -->
     <form id="profileForm" method="POST" class="profile-form">
-      <!-- Top Row with Name, Location and Large Profile Image -->
-      <div class="top-row">
-        <div class="left-column">
-          <div class="form-group">
-            <label>Name</label>
-            <input type="text" name="name" value="{{ user_data.name or '' }}" required>
-          </div>
-          <div class="form-group">
-            <label>Location</label>
-            <input type="text" name="location" value="{{ user_data.location or '' }}" required>
-          </div>
-        </div>
-        
-        <!-- Large Profile Image on Right -->
-        <div class="profile-image-container">
-          <img src="{{ user_data.photo_url or '/static/default-profile.png' }}" alt="Profile" class="profile-photo">
-        </div>
-      </div>
+      <div class="profile-content">
+        <!-- Left Column - Form Fields -->
+        <div class="form-column">
+          <div class="card">
+            <div class="card-header">
+              <i class="fas fa-id-card"></i>
+              <h3>Basic Information</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>Full Name</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-user"></i>
+                  <input type="text" name="name" value="{{ user_data.name or '' }}" placeholder="Enter your full name" required>
+                </div>
+              </div>
 
-      <!-- Rest of form fields -->
-      <div class="form-group">
-        <label>Skills Offered</label>
-        <input type="text" name="offeredSkill" placeholder="e.g. Python, Design" value="{{ user_data.offeredSkill | join(', ') }}">
-      </div>
-      <div class="form-group">
-        <label>Skills Wanted</label>
-        <input type="text" name="requestedSkill" placeholder="e.g. Public Speaking, React" value="{{ user_data.requestedSkill | join(', ') }}">
-      </div>
-      <div class="form-group">
-        <label>Availability</label>
-        <select name="availability" required>
-          <option value="Weekdays" {% if user_data.availability == "Weekdays" %}selected{% endif %}>Weekdays</option>
-          <option value="Weekends" {% if user_data.availability == "Weekends" %}selected{% endif %}>Weekends</option>
-          <option value="Evenings" {% if user_data.availability == "Evenings" %}selected{% endif %}>Evenings</option>
-          <option value="Mornings" {% if user_data.availability == "Mornings" %}selected{% endif %}>Mornings</option>
-          <option value="Flexible" {% if user_data.availability == "Flexible" %}selected{% endif %}>Flexible</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Profile Visibility</label>
-        <select name="visibility">
-          <option value="Public" {% if user_data.profileVisibility == 'Public' %}selected{% endif %}>Public</option>
-          <option value="Private" {% if user_data.profileVisibility == 'Private' %}selected{% endif %}>Private</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Profile Photo URL</label>
-        <input type="text" name="photo_url" placeholder="Paste Image URL" value="{{ user_data.photo_url or '' }}">
+              <div class="form-group">
+                <label>Location</label>
+                <div class="location-container">
+                  <div class="input-with-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <input type="text" id="cityInput" name="city" value="{{ user_data.city or '' }}" placeholder="Enter your city" required>
+                    <div id="citySuggestions" class="suggestions-dropdown"></div>
+                  </div>
+                  <input type="hidden" id="stateInput" name="state" value="{{ user_data.state or '' }}">
+                  <button type="button" id="autoDetectLocation" class="btn-auto-detect">
+                    <i class="fas fa-location-arrow"></i> Auto Detect
+                  </button>
+                </div>
+                <div class="location-display" id="locationDisplay">
+                  {% if user_data.city and user_data.state %}
+                  <span><i class="fas fa-check-circle"></i> {{ user_data.city }}, {{ user_data.state }}</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Availability</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-clock"></i>
+                  <select name="availability" required>
+                    <option value="Weekdays" {% if user_data.availability == "Weekdays" %}selected{% endif %}>Weekdays</option>
+                    <option value="Weekends" {% if user_data.availability == "Weekends" %}selected{% endif %}>Weekends</option>
+                    <option value="Evenings" {% if user_data.availability == "Evenings" %}selected{% endif %}>Evenings</option>
+                    <option value="Mornings" {% if user_data.availability == "Mornings" %}selected{% endif %}>Mornings</option>
+                    <option value="Flexible" {% if user_data.availability == "Flexible" %}selected{% endif %}>Flexible</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <i class="fas fa-code"></i>
+              <h3>Skills & Expertise</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>Skills Offered</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-hands-helping"></i>
+                  <input type="text" name="offeredSkill" placeholder="e.g. Python, Design, Marketing" value="{{ user_data.offeredSkill | join(', ') }}">
+                </div>
+                <div class="input-hint">Separate skills with commas</div>
+              </div>
+
+              <div class="form-group">
+                <label>Skills Wanted</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-lightbulb"></i>
+                  <input type="text" name="requestedSkill" placeholder="e.g. Public Speaking, React, Data Analysis" value="{{ user_data.requestedSkill | join(', ') }}">
+                </div>
+                <div class="input-hint">What skills would you like to learn?</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column - Profile Image & Social -->
+        <div class="profile-column">
+          <div class="card profile-card">
+            <div class="card-header">
+              <i class="fas fa-camera"></i>
+              <h3>Profile Photo</h3>
+            </div>
+            <div class="card-body">
+              <div class="profile-image-container">
+                <img src="{{ user_data.photo_url or '/static/default-profile.png' }}" alt="Profile" class="profile-photo" id="profileImage">
+                <div class="profile-image-overlay">
+                  <i class="fas fa-camera"></i>
+                  <span>Change Photo</span>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label>Profile Photo URL</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-link"></i>
+                  <input type="text" name="photo_url" placeholder="Paste image URL here" value="{{ user_data.photo_url or '' }}" id="photoUrlInput">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Profile Visibility</label>
+                <div class="visibility-toggle">
+                  <div class="toggle-option {% if user_data.profileVisibility == 'Public' %}active{% endif %}" data-value="Public">
+                    <i class="fas fa-globe"></i>
+                    <span>Public</span>
+                  </div>
+                  <div class="toggle-option {% if user_data.profileVisibility == 'Private' %}active{% endif %}" data-value="Private">
+                    <i class="fas fa-lock"></i>
+                    <span>Private</span>
+                  </div>
+                  <input type="hidden" name="visibility" id="visibilityInput" value="{{ user_data.profileVisibility or 'Public' }}">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card social-card">
+            <div class="card-header">
+              <i class="fas fa-share-alt"></i>
+              <h3>Social Links</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>LinkedIn</label>
+                <div class="input-with-icon">
+                  <i class="fab fa-linkedin"></i>
+                  <input type="text" name="linkedin" placeholder="https://linkedin.com/in/username" value="{{ user_data.linkedin or '' }}">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Twitter</label>
+                <div class="input-with-icon">
+                  <i class="fab fa-twitter"></i>
+                  <input type="text" name="twitter" placeholder="https://twitter.com/username" value="{{ user_data.twitter or '' }}">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Instagram</label>
+                <div class="input-with-icon">
+                  <i class="fab fa-instagram"></i>
+                  <input type="text" name="instagram" placeholder="https://instagram.com/username" value="{{ user_data.instagram or '' }}">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>GitHub</label>
+                <div class="input-with-icon">
+                  <i class="fab fa-github"></i>
+                  <input type="text" name="github" placeholder="https://github.com/username" value="{{ user_data.github or '' }}">
+                </div>
+              </div>
+
+              <!-- Social Media Icons Display -->
+              <div class="social-icons-display" id="socialIconsDisplay">
+                {% if user_data.linkedin or user_data.twitter or user_data.instagram or user_data.github %}
+                <div class="social-icons">
+                  {% if user_data.linkedin %}
+                  <a href="{{ user_data.linkedin }}" target="_blank" class="social-icon linkedin">
+                    <i class="fab fa-linkedin"></i>
+                  </a>
+                  {% endif %}
+                  {% if user_data.twitter %}
+                  <a href="{{ user_data.twitter }}" target="_blank" class="social-icon twitter">
+                    <i class="fab fa-twitter"></i>
+                  </a>
+                  {% endif %}
+                  {% if user_data.instagram %}
+                  <a href="{{ user_data.instagram }}" target="_blank" class="social-icon instagram">
+                    <i class="fab fa-instagram"></i>
+                  </a>
+                  {% endif %}
+                  {% if user_data.github %}
+                  <a href="{{ user_data.github }}" target="_blank" class="social-icon github">
+                    <i class="fab fa-github"></i>
+                  </a>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn-save">Save Profile</button>
-        <a href="{{ url_for('main.profile') }}" class="btn-discard">Discard Changes</a>
+        <button type="submit" class="btn-save">
+          <i class="fas fa-save"></i> Save Changes
+        </button>
+        <a href="{{ url_for('main.profile') }}" class="btn-discard">
+          <i class="fas fa-times"></i> Discard Changes
+        </a>
       </div>
     </form>
   </div>
+
+  <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
 </body>
 </html>
-<!-- end  -->
