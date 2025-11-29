@@ -246,5 +246,16 @@
   </footer>
 
   <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+  <!-- Dograh Voice Widget -->
+<script>
+  (function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) return;
+    js = d.createElement(s); js.id = id;
+    js.src = 'https://app.dograh.com/embed/dograh-widget.js?token=emb_1bg8_EAZinlhDHSY171k9ZY48d2_Qm_BjMcH2q5-F94&environment=production&apiEndpoint=api.dograh.com';
+    js.async = true;
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'dograh-widget'));
+</script>
 </body>
 </html>
