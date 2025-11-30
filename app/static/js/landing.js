@@ -84,3 +84,90 @@ function setupScrollAnimations() {
         observer.observe(step);
     });
 }
+
+// Enhanced search functionality
+function initializeSearch() {
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (!searchForm || !searchInput) return;
+    
+    // Debounce search function
+    let searchTimeout;
+    searchInput.addEventListener('input', function(e) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            if (this.value.trim().length >= 2) {
+                performSearch(this.value);
+            }
+        }, 300);
+    });
+    
+    // Real-time search feedback
+    searchInput.addEventListener('input', function() {
+        if (this.value.length > 0) {
+            this.parentElement.classList.add('searching');
+        } else {
+            this.parentElement.classList.remove('searching');
+        }
+    });
+    
+    // Form submission
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        performSearch(searchInput.value);
+    });
+}
+
+function performSearch(query) {
+    const searchBtn = document.querySelector('.search-btn');
+    const originalHtml = searchBtn.innerHTML;
+    
+    // Show loading state
+    searchBtn.innerHTML = '<div class="loading-spinner"></div>';
+    searchBtn.disabled = true;
+    
+    // Submit form programmatically
+    const form = document.getElementById('searchForm');
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'q';
+    input.value = query;
+    form.appendChild(input);
+    form.submit();
+}
+
+// Enhanced card animations
+function initializeCardAnimations() {
+    const cards = document.querySelectorAll('.user-card');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+                observer.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    });
+    
+    cards.forEach((card, index) => {
+        card.style.animation = `cardSlideIn 0.6s ease-out ${index * 0.1}s both paused`;
+        observer.observe(card);
+    });
+}
+
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSearch();
+    initializeCardAnimations();
+    
+    // Add smooth transitions to all interactive elements
+    const interactiveElements = document.querySelectorAll('a, button, .user-card, .skill-tag');
+    interactiveElements.forEach(el => {
+        el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    });
+});

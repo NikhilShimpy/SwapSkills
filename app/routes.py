@@ -34,7 +34,7 @@ def app():
     if not user_id:
         return redirect(url_for('main.login'))
     
-    query = request.args.get('q', '').lower()
+    query = request.args.get('q', '').strip().lower()
     page = int(request.args.get('page', 1))
     per_page = 12
 
@@ -43,7 +43,7 @@ def app():
     total_users_query = users_ref.where('profileVisibility', '==', 'Public').stream()
     total_users = len(list(total_users_query))
 
-    # Fetch users for the main grid
+    # Fetch users for the main grid with search functionality
     users_ref = db.collection('users').stream()
     user_data = []
 
@@ -54,19 +54,39 @@ def app():
         if user.get('profileVisibility', 'Public') != 'Public':
             continue
 
+        # Get location data
+        city = user.get('city', '')
+        state = user.get('state', '')
+        location = user.get('location', '')
+        
+        # Create display location
+        if city and state:
+            display_location = f"{city}, {state}"
+        elif city:
+            display_location = city
+        elif location:
+            display_location = location
+        else:
+            display_location = "Location not specified"
+
         availability = user.get('availability', '')
         if isinstance(availability, list):
             availability = ", ".join(availability)
 
-        search_blob = " ".join([
-            user.get('name', ''),
-            " ".join(user.get('offeredSkill', [])),
-            " ".join(user.get('requestedSkill', [])),
-            user.get('location', ''),
-            availability
-        ]).lower()
+        # Enhanced search functionality
+        search_terms = [
+            user.get('name', '').lower(),
+            " ".join(user.get('offeredSkill', [])).lower(),
+            " ".join(user.get('requestedSkill', [])).lower(),
+            city.lower(),
+            state.lower(),
+            location.lower(),
+            availability.lower()
+        ]
 
-        if query and query not in search_blob:
+        search_blob = " ".join(search_terms)
+
+        if query and not any(query in term for term in search_terms if term):
             continue
 
         user_data.append({
@@ -75,7 +95,12 @@ def app():
             'offeredSkill': user.get('offeredSkill', []),
             'requestedSkill': user.get('requestedSkill', []),
             'rating': generate_random_rating(),
-            'user_id': user_id
+            'user_id': user_id,
+            'city': city,
+            'state': state,
+            'location': location,
+            'display_location': display_location,
+            'availability': availability
         })
 
     # Get AI recommendations for logged-in users
@@ -104,13 +129,28 @@ def app():
                         any(rec['user_id'] == user_id for rec in ai_recommendations)):
                         continue
                     
+                    # Get location for recommendations too
+                    city = user.get('city', '')
+                    state = user.get('state', '')
+                    location = user.get('location', '')
+                    
+                    if city and state:
+                        display_location = f"{city}, {state}"
+                    elif city:
+                        display_location = city
+                    elif location:
+                        display_location = location
+                    else:
+                        display_location = "Location not specified"
+                    
                     ai_recommendations.append({
                         'name': user.get('name', 'Anonymous'),
                         'photo_url': user.get('photo_url', '/static/default-profile.png'),
                         'offeredSkill': user.get('offeredSkill', []),
                         'requestedSkill': user.get('requestedSkill', []),
                         'rating': generate_random_rating(),
-                        'user_id': user_id
+                        'user_id': user_id,
+                        'display_location': display_location
                     })
                     
                     if len(ai_recommendations) >= 6:
@@ -119,9 +159,14 @@ def app():
                 if len(ai_recommendations) >= 6:
                     break
 
-    # Pagination
+    # Enhanced pagination with search results
     total_filtered_users = len(user_data)
     total_pages = ceil(total_filtered_users / per_page) if total_filtered_users > 0 else 1
+    
+    # If search query exists and no results on current page, go to page 1
+    if query and page > total_pages and total_pages > 0:
+        page = 1
+    
     start = (page - 1) * per_page
     end = start + per_page
     paginated_users = user_data[start:end]
@@ -134,7 +179,8 @@ def app():
         query=query,
         total_users=total_users,
         ai_recommendations=ai_recommendations,
-        is_authenticated=is_authenticated
+        is_authenticated=is_authenticated,
+        search_results_count=total_filtered_users
     )
 
 # ------------------ Auth Routes ------------------
@@ -205,6 +251,8 @@ def edit_profile():
         offered_skills = request.form.get('offeredSkill', '').split(',')
         requested_skills = request.form.get('requestedSkill', '').split(',')
         location = request.form.get('location', '')
+        city = request.form.get('city', '')
+        state = request.form.get('state', '')
         availability = request.form.get('availability', '')
         profile_visibility = request.form.get('profileVisibility', 'Public')
         
@@ -217,6 +265,8 @@ def edit_profile():
             'offeredSkill': offered_skills,
             'requestedSkill': requested_skills,
             'location': location,
+            'city': city,
+            'state': state,
             'availability': availability,
             'profileVisibility': profile_visibility,
             'updatedAt': firestore.SERVER_TIMESTAMP
