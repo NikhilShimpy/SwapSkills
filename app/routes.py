@@ -43,7 +43,7 @@ def app():
     total_users_query = users_ref.where('profileVisibility', '==', 'Public').stream()
     total_users = len(list(total_users_query))
 
-    # Fetch users for the main grid with search functionality
+    # Fetch ALL users from Firebase
     users_ref = db.collection('users').stream()
     user_data = []
 
@@ -51,6 +51,7 @@ def app():
         user = doc.to_dict()
         user_id = doc.id
 
+        # Skip users who are not public
         if user.get('profileVisibility', 'Public') != 'Public':
             continue
 
@@ -69,39 +70,46 @@ def app():
         else:
             display_location = "Location not specified"
 
-        availability = user.get('availability', '')
-        if isinstance(availability, list):
-            availability = ", ".join(availability)
+        # Get skills
+        offered_skills = [skill.lower() for skill in user.get('offeredSkill', [])]
+        requested_skills = [skill.lower() for skill in user.get('requestedSkill', [])]
+        
+        # Get user name
+        user_name = user.get('name', '').lower()
+        
+        # Enhanced search functionality - ONLY search by name and offered skills
+        matches_search = False
+        if not query:
+            matches_search = True  # Show all if no query
+        else:
+            # Search in user name
+            if query in user_name:
+                matches_search = True
+            
+            # Search in offered skills (EXACT MATCH or CONTAINS)
+            for skill in offered_skills:
+                if query in skill or query == skill:
+                    matches_search = True
+                    break
+        
+        # Only add user if they match the search criteria
+        if matches_search:
+            user_data.append({
+                'name': user.get('name', 'Anonymous'),
+                'photo_url': user.get('photo_url', '/static/default-profile.png'),
+                'offeredSkill': user.get('offeredSkill', []),
+                'requestedSkill': user.get('requestedSkill', []),
+                'rating': generate_random_rating(),
+                'user_id': doc.id,
+                'city': city,
+                'state': state,
+                'location': location,
+                'display_location': display_location,
+                'availability': user.get('availability', '')
+            })
 
-        # Enhanced search functionality
-        search_terms = [
-            user.get('name', '').lower(),
-            " ".join(user.get('offeredSkill', [])).lower(),
-            " ".join(user.get('requestedSkill', [])).lower(),
-            city.lower(),
-            state.lower(),
-            location.lower(),
-            availability.lower()
-        ]
-
-        search_blob = " ".join(search_terms)
-
-        if query and not any(query in term for term in search_terms if term):
-            continue
-
-        user_data.append({
-            'name': user.get('name', 'Anonymous'),
-            'photo_url': user.get('photo_url', '/static/default-profile.png'),
-            'offeredSkill': user.get('offeredSkill', []),
-            'requestedSkill': user.get('requestedSkill', []),
-            'rating': generate_random_rating(),
-            'user_id': user_id,
-            'city': city,
-            'state': state,
-            'location': location,
-            'display_location': display_location,
-            'availability': availability
-        })
+    # Sort users by name
+    user_data.sort(key=lambda x: x['name'])
 
     # Get AI recommendations for logged-in users
     ai_recommendations = []
@@ -159,13 +167,15 @@ def app():
                 if len(ai_recommendations) >= 6:
                     break
 
-    # Enhanced pagination with search results
+    # Pagination
     total_filtered_users = len(user_data)
     total_pages = ceil(total_filtered_users / per_page) if total_filtered_users > 0 else 1
     
-    # If search query exists and no results on current page, go to page 1
-    if query and page > total_pages and total_pages > 0:
+    # Ensure page is within valid range
+    if page < 1:
         page = 1
+    elif page > total_pages and total_pages > 0:
+        page = total_pages
     
     start = (page - 1) * per_page
     end = start + per_page
@@ -182,6 +192,76 @@ def app():
         is_authenticated=is_authenticated,
         search_results_count=total_filtered_users
     )
+
+# ------------------ Enhanced Search API Endpoint ------------------
+@main.route('/api/search_users', methods=['GET'])
+def api_search_users():
+    """API endpoint for searching users across entire database"""
+    try:
+        query = request.args.get('q', '').strip().lower()
+        users_ref = db.collection('users').stream()
+        
+        search_results = []
+        
+        for doc in users_ref:
+            user = doc.to_dict()
+            user_id = doc.id
+
+            if user.get('profileVisibility', 'Public') != 'Public':
+                continue
+
+            # Get user name and skills
+            user_name = user.get('name', '').lower()
+            offered_skills = [skill.lower() for skill in user.get('offeredSkill', [])]
+            
+            # Check if matches search query
+            matches = False
+            if not query:
+                matches = True
+            else:
+                # Search in user name
+                if query in user_name:
+                    matches = True
+                
+                # Search in offered skills
+                if not matches:
+                    for skill in offered_skills:
+                        if query in skill or query == skill:
+                            matches = True
+                            break
+            
+            if matches:
+                # Get location
+                city = user.get('city', '')
+                state = user.get('state', '')
+                if city and state:
+                    display_location = f"{city}, {state}"
+                elif city:
+                    display_location = city
+                else:
+                    display_location = user.get('location', 'Location not specified')
+                
+                search_results.append({
+                    'name': user.get('name', 'Anonymous'),
+                    'photo_url': user.get('photo_url', '/static/default-profile.png'),
+                    'offeredSkill': user.get('offeredSkill', []),
+                    'requestedSkill': user.get('requestedSkill', []),
+                    'rating': generate_random_rating(),
+                    'user_id': user_id,
+                    'display_location': display_location
+                })
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(search_results),
+            'results': search_results[:10]  # Limit to 10 results for performance
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
 
 # ------------------ Auth Routes ------------------
 @main.route('/login')
@@ -342,8 +422,9 @@ def view_swap_profile(user_id):
         "swap_profile.html",
         user_data=user_data,
         target_user_id=user_id,
-        current_user_data=current_user_data  # Add this line
+        current_user_data=current_user_data
     )
+
 # ------------------ Swap Requests Management ------------------
 @main.route('/see-request', methods=['GET'])
 def see_request():

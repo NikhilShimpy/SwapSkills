@@ -107,144 +107,140 @@
   </div>
 
   <main class="container">
-    <!-- Welcome Section -->
-    <!-- <section class="welcome-section">
-      <div class="welcome-content">
-        <h1>Welcome to SkillSwap!</h1>
-        <p>Discover amazing skills and connect with talented people in our community.</p>
-        
-        {% if ai_recommendations %}
-        <div class="ai-recommendations-badge">
-          <i class="fas fa-robot"></i>
-          <span>AI has {{ ai_recommendations|length }} recommendations for you!</span>
-        </div>
-        {% endif %}
-      </div>
-      
-      <div class="stats-overview">
-        <div class="stat-card">
-          <i class="fas fa-users"></i>
-          <div class="stat-info">
-            <div class="stat-number">{{ total_users }}+</div>
-            <div class="stat-label">Active Users</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <i class="fas fa-handshake"></i>
-          <div class="stat-info">
-            <div class="stat-number">{{ swaps|length }}</div>
-            <div class="stat-label">Available Swaps</div>
-          </div>
-        </div>
-      </div>
-    </section> -->
-
+   
     
 
     <!-- Search & Filter -->
     <section class="search-section">
       <div class="search-container">
-        <form method="GET" action="{{ url_for('main.app') }}" class="search-form">
+        <form method="GET" action="{{ url_for('main.app') }}" class="search-form" id="searchForm">
           <div class="search-input-wrapper">
             <i class="fas fa-search search-icon"></i>
-            <input type="text" name="q" placeholder="Search by name, skills, location..." value="{{ request.args.get('q', '') }}" class="search-input">
+            <input type="text" 
+                   name="q" 
+                   id="searchInput"
+                   placeholder="Search by name or offering skill..." 
+                   value="{{ request.args.get('q', '') }}" 
+                   class="search-input"
+                   autocomplete="off">
             <button type="button" class="search-clear" id="searchClear">
               <i class="fas fa-times"></i>
             </button>
+            <div class="search-suggestions" id="searchSuggestions"></div>
           </div>
           <button type="submit" class="search-btn">
             <span>Search</span>
-            <i class="fas fa-arrow-right"></i>
+            <i class="fas fa-search"></i>
           </button>
         </form>
         
-        <div class="filter-tags">
-          <button class="filter-tag active" data-category="all">All Skills</button>
-          <button class="filter-tag" data-category="design">Design</button>
-          <button class="filter-tag" data-category="development">Development</button>
-          <button class="filter-tag" data-category="marketing">Marketing</button>
-          <button class="filter-tag" data-category="languages">Languages</button>
+        <div class="search-tips">
+          <span class="tip-icon"><i class="fas fa-lightbulb"></i></span>
+          <span>Search by: User Name or Skill they're offering (e.g., "Flutter", "JavaScript")</span>
         </div>
       </div>
     </section>
 
-    <!-- Results Count -->
-    <div class="results-info">
-      <p>Showing <span id="resultsCount">{{ swaps|length }}</span> available skill swaps out of {{ total_users }} users</p>
+    <!-- Search Results Info -->
+    {% if query %}
+    <div class="search-results-info">
+      <p>
+        <span class="results-count">{{ search_results_count }}</span> result(s) found for "<span class="search-query">{{ query }}</span>"
+        {% if search_results_count == 0 %}
+        <br><small>Try searching by user name or skill they offer (e.g., "Flutter", "JavaScript")</small>
+        {% endif %}
+      </p>
     </div>
+    {% endif %}
 
-    <!-- User Grid -->
-    <section class="user-grid">
-      {% for swap in swaps %}
-      <div class="user-card" data-user-id="{{ swap.user_id }}">
-        <div class="card-header">
-          <div class="user-avatar">
-            <img src="{{ swap.photo_url }}" alt="{{ swap.name }}" class="profile-img" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face'">
-            <div class="online-indicator"></div>
-          </div>
-          
-          <div class="user-meta">
-            <h3 class="user-name">{{ swap.name }}</h3>
-            <div class="user-location">
-              <i class="fas fa-map-marker-alt"></i>
-              <span>Available for swap</span>
-            </div>
-          </div>
-          
-          <div class="rating-badge">
-            <i class="fas fa-star"></i>
-            <span>{{ swap.rating }}/5</span>
-          </div>
-        </div>
+   
 
-        <div class="skills-section">
-          <div class="skill-category">
-            <div class="category-header">
-              <i class="fas fa-share skill-icon offered"></i>
-              <h4>Offering</h4>
-            </div>
-            <div class="skill-tags">
-              {% for skill in swap.offeredSkill %}
-              <span class="skill-tag offered">{{ skill }}</span>
-              {% endfor %}
-            </div>
-          </div>
-          
-          <div class="skill-category">
-            <div class="category-header">
-              <i class="fas fa-hand-holding-heart skill-icon wanted"></i>
-              <h4>Seeking</h4>
-            </div>
-            <div class="skill-tags">
-              {% for skill in swap.requestedSkill %}
-              <span class="skill-tag wanted">{{ skill }}</span>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-
-        <div class="card-footer">
-          <a href="{{ url_for('main.request_swap', target_user_id=swap.user_id) }}" class="request-btn">
-            <i class="fas fa-handshake"></i>
-            <span>Request Swap</span>
-          </a>
-          <button class="bookmark-btn" data-user-id="{{ swap.user_id }}">
-            <i class="far fa-bookmark"></i>
-          </button>
-        </div>
+    <!-- Main User Grid -->
+    <section class="user-grid-section">
+      {% if query == '' and not ai_recommendations %}
+      <div class="section-header">
+        <h2>Available Skill Swaps</h2>
+        <p>Browse through our community members</p>
       </div>
-      {% endfor %}
+      {% endif %}
+      
+      <div class="user-grid" id="userGrid">
+        {% for swap in swaps %}
+        <div class="user-card" data-user-id="{{ swap.user_id }}">
+          <div class="card-header">
+            <div class="user-avatar">
+              <img src="{{ swap.photo_url }}" alt="{{ swap.name }}" class="profile-img" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face'">
+              <div class="online-indicator"></div>
+            </div>
+            
+            <div class="user-meta">
+              <h3 class="user-name">{{ swap.name }}</h3>
+              <div class="user-location">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ swap.display_location if swap.display_location else "Location not specified" }}</span>
+              </div>
+            </div>
+            
+            <div class="rating-badge">
+              <i class="fas fa-star"></i>
+              <span>{{ swap.rating }}/5</span>
+            </div>
+          </div>
+
+          <div class="skills-section">
+            <div class="skill-category">
+              <div class="category-header">
+                <i class="fas fa-share skill-icon offered"></i>
+                <h4>Offering</h4>
+              </div>
+              <div class="skill-tags">
+                {% for skill in swap.offeredSkill %}
+                <span class="skill-tag offered">{{ skill }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            
+            <div class="skill-category">
+              <div class="category-header">
+                <i class="fas fa-hand-holding-heart skill-icon wanted"></i>
+                <h4>Seeking</h4>
+              </div>
+              <div class="skill-tags">
+                {% for skill in swap.requestedSkill %}
+                <span class="skill-tag wanted">{{ skill }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <a href="{{ url_for('main.request_swap', target_user_id=swap.user_id) }}" class="request-btn">
+              <i class="fas fa-handshake"></i>
+              <span>Request Swap</span>
+            </a>
+            <button class="bookmark-btn" data-user-id="{{ swap.user_id }}">
+              <i class="far fa-bookmark"></i>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
     </section>
 
     <!-- Empty State -->
-    <div class="empty-state" id="emptyState" style="display: none;">
+    {% if swaps|length == 0 and query %}
+    <div class="empty-state" id="emptyState">
       <div class="empty-icon">
         <i class="fas fa-search"></i>
       </div>
-      <h3>No results found</h3>
-      <p>Try adjusting your search or filters to find more skill swaps</p>
-      <button class="clear-filters-btn" id="clearFiltersBtn">Clear All Filters</button>
+      <h3>No results found for "{{ query }}"</h3>
+      <p>Try searching by user name or skill they offer (e.g., "Flutter", "JavaScript")</p>
+      <a href="{{ url_for('main.app') }}" class="clear-filters-btn">
+        <i class="fas fa-times"></i>
+        Clear Search
+      </a>
     </div>
+    {% endif %}
 
     <!-- Pagination -->
     {% if total_pages > 1 %}
@@ -257,11 +253,8 @@
           </a>
         {% endif %}
 
-        <div class="pagination-numbers">
-          {% for i in range(1, total_pages + 1) %}
-            <a href="{{ url_for('main.app', page=i, q=query) }}"
-               class="pagination-number {% if i == current_page %}active{% endif %}">{{ i }}</a>
-          {% endfor %}
+        <div class="pagination-info">
+          Page {{ current_page }} of {{ total_pages }}
         </div>
 
         {% if current_page < total_pages %}

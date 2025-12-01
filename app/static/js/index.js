@@ -1,4 +1,4 @@
-// Enhanced index.js with better error handling
+// Enhanced index.js with proper search functionality
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing SkillSwap...');
     initializeApp();
@@ -17,6 +17,9 @@ function initializeApp() {
         // Hide loading screen
         hideLoadingScreen();
         
+        // Initialize enhanced search
+        initializeEnhancedSearch();
+        
     } catch (error) {
         console.error('Error initializing app:', error);
         hideLoadingScreen();
@@ -26,18 +29,20 @@ function initializeApp() {
 function initializeDOMElements() {
     console.log('Initializing DOM elements...');
     
-    // Basic DOM elements - don't rely on Firebase
+    // Basic DOM elements
     window.elements = {
         loadingScreen: document.getElementById('loadingScreen'),
         mobileMenuBtn: document.getElementById('mobileMenuBtn'),
         mobileMenu: document.getElementById('mobileMenu'),
         searchClear: document.getElementById('searchClear'),
-        searchInput: document.querySelector('.search-input'),
+        searchInput: document.getElementById('searchInput'),
+        searchForm: document.getElementById('searchForm'),
+        searchSuggestions: document.getElementById('searchSuggestions'),
         clearFiltersBtn: document.getElementById('clearFiltersBtn'),
         backToTop: document.getElementById('backToTop'),
         emptyState: document.getElementById('emptyState'),
-        userGrid: document.querySelector('.user-grid'),
-        resultsCount: document.getElementById('resultsCount')
+        userGrid: document.getElementById('userGrid'),
+        resultsCount: document.querySelector('.results-count')
     };
     
     console.log('DOM elements initialized');
@@ -47,7 +52,6 @@ function hideLoadingScreen() {
     console.log('Hiding loading screen...');
     const loadingScreen = document.getElementById('loadingScreen');
     if (loadingScreen) {
-        // Use CSS transitions for smooth hiding
         loadingScreen.style.opacity = '0';
         loadingScreen.style.transition = 'opacity 0.5s ease';
         
@@ -57,6 +61,144 @@ function hideLoadingScreen() {
         }, 500);
     } else {
         console.log('Loading screen element not found');
+    }
+}
+
+// Enhanced Search Functionality
+function initializeEnhancedSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+    
+    if (!searchInput || !searchSuggestions) return;
+    
+    // Show/hide clear button based on input
+    searchInput.addEventListener('input', function() {
+        if (searchClear) {
+            searchClear.style.display = this.value ? 'block' : 'none';
+        }
+    });
+    
+    // Clear search input
+    if (searchClear) {
+        searchClear.addEventListener('click', function() {
+            searchInput.value = '';
+            this.style.display = 'none';
+            searchSuggestions.style.display = 'none';
+            // Submit form to clear search
+            const form = document.getElementById('searchForm');
+            if (form) form.submit();
+        });
+    }
+    
+    // Show search suggestions on focus
+    searchInput.addEventListener('focus', function() {
+        if (this.value.length >= 2) {
+            fetchSearchSuggestions(this.value);
+        }
+    });
+    
+    // Fetch search suggestions with debouncing
+    let searchTimeout;
+    searchInput.addEventListener('input', function(e) {
+        clearTimeout(searchTimeout);
+        
+        if (this.value.trim().length >= 2) {
+            searchTimeout = setTimeout(() => {
+                fetchSearchSuggestions(this.value);
+            }, 300);
+        } else {
+            searchSuggestions.style.display = 'none';
+        }
+    });
+    
+    // Handle form submission with instant feedback
+    const searchForm = document.getElementById('searchForm');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            const searchValue = searchInput.value.trim();
+            if (searchValue === '') {
+                e.preventDefault();
+                return;
+            }
+            
+            // Show loading state
+            const searchBtn = this.querySelector('.search-btn');
+            if (searchBtn) {
+                const originalText = searchBtn.innerHTML;
+                searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+                searchBtn.disabled = true;
+                
+                setTimeout(() => {
+                    searchBtn.innerHTML = originalText;
+                    searchBtn.disabled = false;
+                }, 1000);
+            }
+        });
+    }
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchSuggestions.contains(e.target)) {
+            searchSuggestions.style.display = 'none';
+        }
+    });
+}
+
+async function fetchSearchSuggestions(query) {
+    const searchSuggestions = document.getElementById('searchSuggestions');
+    if (!searchSuggestions) return;
+    
+    try {
+        // Make API call to get search suggestions
+        const response = await fetch(`/api/search_users?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.results.length > 0) {
+            // Show suggestions
+            searchSuggestions.innerHTML = '';
+            searchSuggestions.style.display = 'block';
+            
+            // Add suggestion items
+            data.results.forEach(user => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.className = 'suggestion-item';
+                suggestionItem.innerHTML = `
+                    <div class="suggestion-avatar">
+                        <img src="${user.photo_url}" alt="${user.name}">
+                    </div>
+                    <div class="suggestion-info">
+                        <div class="suggestion-name">${user.name}</div>
+                        <div class="suggestion-skills">
+                            ${user.offeredSkill.slice(0, 3).map(skill => `<span class="skill-badge">${skill}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                suggestionItem.addEventListener('click', function() {
+                    document.getElementById('searchInput').value = user.name;
+                    document.getElementById('searchForm').submit();
+                });
+                
+                searchSuggestions.appendChild(suggestionItem);
+            });
+            
+            // Add "View all results" option
+            const viewAllItem = document.createElement('div');
+            viewAllItem.className = 'suggestion-item view-all';
+            viewAllItem.innerHTML = `<i class="fas fa-search"></i> View all results for "${query}"`;
+            viewAllItem.addEventListener('click', function() {
+                document.getElementById('searchForm').submit();
+            });
+            searchSuggestions.appendChild(viewAllItem);
+            
+        } else {
+            searchSuggestions.style.display = 'none';
+        }
+        
+    } catch (error) {
+        console.error('Error fetching search suggestions:', error);
+        searchSuggestions.style.display = 'none';
     }
 }
 
@@ -70,35 +212,6 @@ function initializeEventListeners() {
         mobileMenuBtn.addEventListener('click', toggleMobileMenu);
     }
     
-    // Search functionality
-    const searchClear = document.getElementById('searchClear');
-    if (searchClear) {
-        searchClear.addEventListener('click', clearSearch);
-    }
-    
-    const searchInput = document.querySelector('.search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', debounce(handleSearch, 300));
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSearch();
-            }
-        });
-    }
-    
-    // Filter tags
-    const filterTags = document.querySelectorAll('.filter-tag');
-    filterTags.forEach(tag => {
-        tag.addEventListener('click', handleFilterClick);
-    });
-    
-    // Clear filters
-    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
-    if (clearFiltersBtn) {
-        clearFiltersBtn.addEventListener('click', clearAllFilters);
-    }
-    
     // Back to top button
     const backToTop = document.getElementById('backToTop');
     if (backToTop) {
@@ -107,7 +220,7 @@ function initializeEventListeners() {
     
     window.addEventListener('scroll', toggleBackToTop);
     
-    // Bookmark buttons - simplified without Firebase dependency
+    // Bookmark buttons
     document.addEventListener('click', function(e) {
         if (e.target.closest('.bookmark-btn')) {
             e.preventDefault();
@@ -139,6 +252,9 @@ function initializeEventListeners() {
         }
     });
     
+    // Initialize bookmarks
+    initializeBookmarks();
+    
     console.log('All event listeners initialized');
 }
 
@@ -154,127 +270,6 @@ function toggleMobileMenu() {
     
     // Prevent body scroll when menu is open
     document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
-}
-
-function clearSearch() {
-    const searchInput = document.querySelector('.search-input');
-    const searchClear = document.getElementById('searchClear');
-    
-    if (!searchInput || !searchClear) return;
-    
-    searchInput.value = '';
-    searchClear.style.display = 'none';
-    handleSearch();
-}
-
-function handleSearch() {
-    const searchInput = document.querySelector('.search-input');
-    const searchClear = document.getElementById('searchClear');
-    
-    if (!searchInput || !searchClear) return;
-    
-    const searchTerm = searchInput.value.trim();
-    searchClear.style.display = searchTerm ? 'block' : 'none';
-    
-    applyFilters();
-}
-
-function handleFilterClick(e) {
-    const filterTag = e.target;
-    const category = filterTag.getAttribute('data-category') || 'all';
-    
-    // Update active state
-    document.querySelectorAll('.filter-tag').forEach(tag => {
-        tag.classList.remove('active');
-    });
-    filterTag.classList.add('active');
-    
-    applyFilters();
-}
-
-function clearAllFilters() {
-    // Clear search
-    const searchInput = document.querySelector('.search-input');
-    const searchClear = document.getElementById('searchClear');
-    
-    if (searchInput && searchClear) {
-        searchInput.value = '';
-        searchClear.style.display = 'none';
-    }
-    
-    // Reset category filter
-    const firstFilter = document.querySelector('.filter-tag[data-category="all"]');
-    if (firstFilter) {
-        document.querySelectorAll('.filter-tag').forEach(tag => {
-            tag.classList.remove('active');
-        });
-        firstFilter.classList.add('active');
-    }
-    
-    applyFilters();
-}
-
-function applyFilters() {
-    const userCards = document.querySelectorAll('.user-card');
-    let visibleCount = 0;
-    
-    const searchInput = document.querySelector('.search-input');
-    const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
-    
-    const activeFilter = document.querySelector('.filter-tag.active');
-    const category = activeFilter ? activeFilter.getAttribute('data-category') : 'all';
-    
-    userCards.forEach(card => {
-        const userName = card.querySelector('.user-name')?.textContent.toLowerCase() || '';
-        const skills = Array.from(card.querySelectorAll('.skill-tag'))
-            .map(tag => tag.textContent.toLowerCase());
-        
-        const matchesSearch = !searchTerm || 
-            userName.includes(searchTerm) ||
-            skills.some(skill => skill.includes(searchTerm));
-        
-        const matchesCategory = category === 'all' ||
-            skills.some(skill => {
-                switch(category) {
-                    case 'design':
-                        return skill.includes('design') || skill.includes('ui') || skill.includes('ux') || skill.includes('graphic');
-                    case 'development':
-                        return skill.includes('develop') || skill.includes('programming') || skill.includes('coding') || skill.includes('web') || skill.includes('software');
-                    case 'marketing':
-                        return skill.includes('market') || skill.includes('seo') || skill.includes('social') || skill.includes('content');
-                    case 'languages':
-                        return skill.includes('language') || skill.includes('english') || skill.includes('spanish') || skill.includes('french') || skill.includes('german');
-                    default:
-                        return true;
-                }
-            });
-        
-        if (matchesSearch && matchesCategory) {
-            card.style.display = 'block';
-            visibleCount++;
-        } else {
-            card.style.display = 'none';
-        }
-    });
-    
-    // Update results count
-    const resultsCount = document.getElementById('resultsCount');
-    if (resultsCount) {
-        resultsCount.textContent = visibleCount;
-    }
-    
-    // Show/hide empty state
-    const emptyState = document.getElementById('emptyState');
-    const userGrid = document.querySelector('.user-grid');
-    if (emptyState && userGrid) {
-        if (visibleCount === 0) {
-            emptyState.style.display = 'block';
-            userGrid.style.display = 'none';
-        } else {
-            emptyState.style.display = 'none';
-            userGrid.style.display = 'grid';
-        }
-    }
 }
 
 // Simplified bookmark without Firebase dependency
@@ -303,18 +298,6 @@ function handleBookmarkClick(button) {
 }
 
 // Utility Functions
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
 function toggleBackToTop() {
     const backToTop = document.getElementById('backToTop');
     if (!backToTop) return;
@@ -399,13 +382,92 @@ if (!document.querySelector('#app-animations')) {
             from { transform: translateX(0); opacity: 1; }
             to { transform: translateX(100%); opacity: 0; }
         }
+        .search-suggestions {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            margin-top: 4px;
+        }
+        .suggestion-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+        .suggestion-item.view-all {
+            justify-content: center;
+            color: #6366f1;
+            font-weight: 500;
+        }
+        .suggestion-avatar img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .suggestion-info {
+            flex: 1;
+        }
+        .suggestion-name {
+            font-weight: 500;
+            color: #333;
+        }
+        .suggestion-skills {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+        .skill-badge {
+            background: #e0e7ff;
+            color: #4f46e5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .search-tips {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .tip-icon {
+            color: #f59e0b;
+        }
+        .search-results-info {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+        }
+        .results-count {
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+        .search-query {
+            font-weight: 600;
+            color: #fef3c7;
+        }
     `;
     document.head.appendChild(style);
 }
 
-// Initialize bookmarks after page loads
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(initializeBookmarks, 100);
-});
-
-console.log("🎉 Index module loaded!");
+console.log("🎉 Enhanced SkillSwap module loaded!");
