@@ -30,7 +30,7 @@ body {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   background: white;
   border-radius: 16px;
@@ -116,7 +116,8 @@ body {
 .btn-home,
 .btn-auto-detect,
 .btn-edit,
-.btn-upload {
+.btn-upload,
+.btn-secondary {
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 0.95rem;
@@ -219,6 +220,23 @@ body {
   transform: none;
 }
 
+.btn-secondary {
+  background: var(--gray-light);
+  color: var(--dark);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: #e2e6ea;
+  transform: translateY(-1px);
+}
+
+.btn-secondary:disabled {
+  background: #f8f9fa;
+  color: var(--gray);
+  cursor: not-allowed;
+}
+
 .notification-badge {
   background: var(--warning);
   color: white;
@@ -288,6 +306,10 @@ body {
   margin-bottom: 24px;
 }
 
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
 .form-group label {
   display: block;
   margin-bottom: 8px;
@@ -310,7 +332,8 @@ body {
 }
 
 .input-with-icon input,
-.input-with-icon select {
+.input-with-icon select,
+.textarea-with-icon textarea {
   width: 100%;
   padding: 12px 16px 12px 48px;
   border: 2px solid var(--border);
@@ -318,26 +341,47 @@ body {
   font-size: 0.95rem;
   transition: all 0.3s ease;
   background: white;
+  font-family: inherit;
+}
+
+.textarea-with-icon {
+  position: relative;
+}
+
+.textarea-with-icon i {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  color: var(--gray);
+  z-index: 1;
+}
+
+.textarea-with-icon textarea {
+  padding-left: 48px;
+  resize: vertical;
+  min-height: 100px;
 }
 
 .input-with-icon input:focus,
-.input-with-icon select:focus {
+.input-with-icon select:focus,
+.textarea-with-icon textarea:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
 }
 
 .input-with-icon input:disabled,
-.input-with-icon select:disabled {
+.input-with-icon select:disabled,
+.textarea-with-icon textarea:disabled {
   background-color: #f8f9fa;
   cursor: not-allowed;
   opacity: 0.7;
 }
 
-.input-hint {
-  font-size: 0.85rem;
-  color: var(--gray);
-  margin-top: 6px;
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
 
 /* Location Container */
@@ -385,7 +429,7 @@ body {
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 0.85rem;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   animation: fadeIn 0.3s ease;
@@ -395,7 +439,7 @@ body {
   cursor: pointer;
   font-weight: bold;
   font-size: 1rem;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 16px;
@@ -538,33 +582,226 @@ body {
   min-width: 40px;
 }
 
-/* Visibility Toggle */
-.visibility-toggle {
-  display: flex;
-  background: var(--gray-light);
+/* Section Items */
+.language-item,
+.education-item,
+.experience-item,
+.certification-item,
+.project-item,
+.achievement-item,
+.skill-item {
+  border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 4px;
-  gap: 4px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #f8f9fa;
+  position: relative;
 }
 
-.toggle-option {
-  flex: 1;
-  padding: 12px 16px;
-  text-align: center;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
+.language-input-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-weight: 500;
 }
 
-.toggle-option.active {
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.language-input-group input,
+.language-input-group select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.btn-remove-language,
+.btn-remove-skill,
+.btn-remove-education,
+.btn-remove-experience,
+.btn-remove-certification,
+.btn-remove-project,
+.btn-remove-achievement {
+  background: var(--warning);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.btn-remove-language:hover,
+.btn-remove-skill:hover,
+.btn-remove-education:hover,
+.btn-remove-experience:hover,
+.btn-remove-certification:hover,
+.btn-remove-project:hover,
+.btn-remove-achievement:hover {
+  background: #e91e63;
+  transform: scale(1.05);
+}
+
+.education-view h4,
+.experience-view h4,
+.certification-view h4,
+.project-view h4,
+.achievement-view h4 {
+  margin: 0 0 8px 0;
   color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.education-view .institution,
+.experience-view .company,
+.certification-view .organization,
+.achievement-view .org {
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 4px;
+}
+
+.education-view .details,
+.experience-view .details,
+.certification-view .details,
+.achievement-view .date {
+  color: var(--gray);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.education-view .description,
+.experience-view .responsibilities,
+.project-view .description,
+.achievement-view .description {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.experience-view .skills-used,
+.certification-view .skills,
+.project-view .technologies {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--secondary);
+}
+
+.project-view .type {
+  font-style: italic;
+  color: var(--gray);
+  margin-bottom: 8px;
+}
+
+.project-view .role {
+  font-weight: 600;
+  color: var(--dark);
+}
+
+.project-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.project-link {
+  background: var(--primary);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.project-link:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.btn-view-certificate {
+  display: inline-block;
+  background: var(--success);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-view-certificate:hover {
+  background: #3ab8dd;
+  transform: translateY(-2px);
+}
+
+.current-certificate {
+  display: block;
+  margin-top: 8px;
+  color: var(--primary);
+  font-size: 0.9rem;
+}
+
+/* Edit mode styles */
+.education-edit,
+.experience-edit,
+.certification-edit,
+.project-edit,
+.achievement-edit {
+  display: grid;
+  gap: 12px;
+}
+
+.education-edit input,
+.education-edit textarea,
+.experience-edit input,
+.experience-edit textarea,
+.certification-edit input,
+.certification-edit textarea,
+.project-edit input,
+.project-edit textarea,
+.achievement-edit input,
+.achievement-edit textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.education-edit textarea,
+.experience-edit textarea,
+.project-edit textarea,
+.achievement-edit textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.cert-upload-section,
+.project-images {
+  margin-top: 12px;
+}
+
+.project-links-input {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.project-images-list {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.project-image-preview {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
 }
 
 /* Social Icons */
@@ -642,16 +879,13 @@ body {
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .profile-content {
     grid-template-columns: 1fr;
-    gap: 20px;
   }
   
   .profile-column {
-    max-width: 500px;
-    margin: 0 auto;
-    width: 100%;
+    max-width: 100%;
   }
 }
 
@@ -690,6 +924,14 @@ body {
     width: 100%;
     justify-content: center;
   }
+  
+  .language-input-group {
+    grid-template-columns: 1fr;
+  }
+  
+  .project-links-input {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
@@ -710,132 +952,10 @@ body {
   }
   
   .card-body {
-    padding: 20px;
+    padding: 16px;
   }
-}
-
-/* Add these to your existing profile.css file */
-
-.edit-indicator {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  display: none;
-}
-
-.btn-edit {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.btn-edit:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-}
-
-.btn-upload {
-  background: var(--primary);
-  color: white;
-  width: 100%;
-  justify-content: center;
-  margin-bottom: 10px;
-}
-
-.btn-upload:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-}
-
-.btn-upload:disabled {
-  background: var(--gray);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.upload-progress {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 8px;
-  background: var(--gray-light);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--success));
-  width: 0%;
-  transition: width 0.3s ease;
-}
-
-.skills-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.skill-tag {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  color: white;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  animation: fadeIn 0.3s ease;
-}
-
-.remove-skill {
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transition: all 0.2s ease;
-}
-
-.remove-skill:hover {
-  background: rgba(255, 255, 255, 0.5);
-  transform: scale(1.1);
-}
-
-.no-social-links {
-  text-align: center;
-  padding: 20px;
-  color: var(--gray);
-}
-
-.no-social-links i {
-  font-size: 2rem;
-  margin-bottom: 10px;
-  opacity: 0.5;
-}
-
-.input-with-icon input:disabled,
-.input-with-icon select:disabled {
-  background-color: #f8f9fa;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  
+  .card-header {
+    padding: 16px;
+  }
 }

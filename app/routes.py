@@ -313,14 +313,138 @@ def profile():
     
     if user_doc.exists:
         user_data = user_doc.to_dict()
+        # Initialize new fields if they don't exist
+        default_fields = {
+            'headline': '',
+            'about': '',
+            'country': 'India',
+            'email': '',
+            'phone': '',
+            'website': '',
+            'languages': [],
+            'education': [],
+            'experience': [],
+            'certifications': [],
+            'projects': [],
+            'achievements': [],
+            'skills': []
+        }
+        
+        # Add any missing default fields
+        for field, default_value in default_fields.items():
+            if field not in user_data:
+                user_data[field] = default_value
+                
     else:
-        user_data = {}
+        user_data = {
+            'headline': '',
+            'about': '',
+            'country': 'India',
+            'email': '',
+            'phone': '',
+            'website': '',
+            'languages': [],
+            'education': [],
+            'experience': [],
+            'certifications': [],
+            'projects': [],
+            'achievements': [],
+            'skills': []
+        }
     
     return render_template('profile.html', user_data=user_data)
 
+# NEW ROUTE: Save extended profile data via AJAX
+@main.route('/save-extended-profile', methods=['POST'])
+def save_extended_profile():
+    """Save extended profile data via AJAX"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+        
+        data = request.get_json()
+        
+        # Extract all fields from the request
+        update_data = {
+            # Personal Info
+            'name': data.get('name', ''),
+            'headline': data.get('headline', ''),
+            'about': data.get('about', ''),
+            'city': data.get('city', ''),
+            'state': data.get('state', ''),
+            'country': data.get('country', 'India'),
+            'availability': data.get('availability', 'Flexible'),
+            'email': data.get('email', ''),
+            'phone': data.get('phone', ''),
+            'website': data.get('website', ''),
+            'photo_url': data.get('photo_url', ''),
+            
+            # Social Links
+            'linkedin': data.get('linkedin', ''),
+            'twitter': data.get('twitter', ''),
+            'instagram': data.get('instagram', ''),
+            'github': data.get('github', ''),
+            
+            # Skills
+            'offeredSkill': data.get('offeredSkill', []),
+            'requestedSkill': data.get('requestedSkill', []),
+            
+            # New Sections
+            'languages': data.get('languages', []),
+            'education': data.get('education', []),
+            'experience': data.get('experience', []),
+            'certifications': data.get('certifications', []),
+            'projects': data.get('projects', []),
+            'achievements': data.get('achievements', []),
+            'skills': data.get('skills', []),
+            
+            # Timestamp
+            'updatedAt': firestore.SERVER_TIMESTAMP
+        }
+        
+        # Update in Firestore
+        db.collection('users').document(user_id).set(update_data, merge=True)
+        
+        return jsonify({
+            'status': 'success', 
+            'message': 'Profile updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error saving extended profile: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# NEW ROUTE: Get user data for AJAX requests
+@main.route('/api/user-data')
+def api_user_data():
+    """Get user data for AJAX requests"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+        
+        user_doc = db.collection('users').document(user_id).get()
+        
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            return jsonify({
+                'status': 'success',
+                'data': user_data
+            })
+        else:
+            return jsonify({
+                'status': 'success',
+                'data': {}
+            })
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# Existing route - keep unchanged
 @main.route('/edit-profile', methods=['GET', 'POST'])
 def edit_profile():
-    """Edit user profile"""
+    """Edit user profile - OLD VERSION (keep for backward compatibility)"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect(url_for('main.login'))
@@ -418,6 +542,23 @@ def view_swap_profile(user_id):
     if not user_data:
         return "<h2>User not found</h2>", 404
 
+    # Initialize new fields for swap profile view
+    default_fields = {
+        'headline': '',
+        'about': '',
+        'education': [],
+        'experience': [],
+        'certifications': [],
+        'projects': [],
+        'achievements': [],
+        'skills': [],
+        'languages': []
+    }
+    
+    for field, default_value in default_fields.items():
+        if field not in user_data:
+            user_data[field] = default_value
+
     return render_template(
         "swap_profile.html",
         user_data=user_data,
@@ -476,3 +617,89 @@ def update_status(swap_id):
         db.collection('swaps').document(swap_id).delete()
 
     return redirect(url_for('main.see_request'))
+
+# NEW ROUTE: Enhanced user search for new fields
+@main.route('/api/enhanced-search', methods=['GET'])
+def enhanced_search():
+    """Enhanced search across all user fields"""
+    try:
+        query = request.args.get('q', '').strip().lower()
+        users_ref = db.collection('users').stream()
+        
+        search_results = []
+        
+        for doc in users_ref:
+            user = doc.to_dict()
+            user_id = doc.id
+
+            if user.get('profileVisibility', 'Public') != 'Public':
+                continue
+
+            # Search across multiple fields
+            search_fields = [
+                user.get('name', '').lower(),
+                user.get('headline', '').lower(),
+                user.get('about', '').lower(),
+                ' '.join(user.get('offeredSkill', [])).lower(),
+                ' '.join(user.get('requestedSkill', [])).lower(),
+                ' '.join([edu.get('field_of_study', '') for edu in user.get('education', [])]).lower(),
+                ' '.join([edu.get('institution_name', '') for edu in user.get('education', [])]).lower(),
+                ' '.join([exp.get('job_title', '') for exp in user.get('experience', [])]).lower(),
+                ' '.join([exp.get('company', '') for exp in user.get('experience', [])]).lower(),
+                ' '.join([cert.get('name', '') for cert in user.get('certifications', [])]).lower(),
+                ' '.join([skill.get('skill_name', '') for skill in user.get('skills', [])]).lower(),
+            ]
+            
+            # Check if query exists in any search field
+            matches = False
+            if not query:
+                matches = True
+            else:
+                for field in search_fields:
+                    if query in field:
+                        matches = True
+                        break
+            
+            if matches:
+                # Get location
+                city = user.get('city', '')
+                state = user.get('state', '')
+                if city and state:
+                    display_location = f"{city}, {state}"
+                elif city:
+                    display_location = city
+                else:
+                    display_location = user.get('location', 'Location not specified')
+                
+                result = {
+                    'name': user.get('name', 'Anonymous'),
+                    'headline': user.get('headline', ''),
+                    'photo_url': user.get('photo_url', '/static/default-profile.png'),
+                    'offeredSkill': user.get('offeredSkill', []),
+                    'requestedSkill': user.get('requestedSkill', []),
+                    'rating': generate_random_rating(),
+                    'user_id': user_id,
+                    'display_location': display_location
+                }
+                
+                # Add education if available
+                if user.get('education'):
+                    result['education'] = user['education'][:2]  # Show first 2
+                
+                # Add experience if available
+                if user.get('experience'):
+                    result['experience'] = user['experience'][:2]  # Show first 2
+                
+                search_results.append(result)
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(search_results),
+            'results': search_results[:20]  # Limit to 20 results
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
