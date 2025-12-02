@@ -76,6 +76,15 @@ class ProfileManager {
         this.projectCloudinaryWidget = null;
         this.currentUser = null;
         this.userData = {};
+
+        this.degreesData = null;
+        this.specializationsData = null;
+        this.jobTitlesData = null;
+        this.employmentTypesData = null;
+        this.indianCollegesData = null;
+        this.currentCertItem = null;
+        this.currentProjectItem = null;
+        this.currentEducationItem = null;
         
         // Initialize all elements
         this.initializeElements();
@@ -135,6 +144,138 @@ class ProfileManager {
         this.addSkillBtn = document.getElementById('addSkillBtn');
     }
 
+    async loadDataSets() {
+        try {
+            // Load degrees data
+            const degreesResponse = await fetch('/static/data/degrees.json');
+            this.degreesData = await degreesResponse.json();
+            
+            // Load specializations data
+            const specializationsResponse = await fetch('/static/data/specializations.json');
+            this.specializationsData = await specializationsResponse.json();
+            
+            // Load job titles data
+            const jobTitlesResponse = await fetch('/static/data/job-titles.json');
+            this.jobTitlesData = await jobTitlesResponse.json();
+            
+            // Load employment types data
+            const employmentTypesResponse = await fetch('/static/data/employment-types.json');
+            this.employmentTypesData = await employmentTypesResponse.json();
+            
+            console.log('Datasets loaded successfully');
+        } catch (error) {
+            console.error('Error loading datasets:', error);
+            // Create fallback data if files don't exist
+            this.createFallbackDatasets();
+        }
+    }
+
+    createFallbackDatasets() {
+        // Fallback degrees data
+        this.degreesData = {
+            degree_types: {
+                undergraduate: [
+                    { value: "BA", label: "BA – Bachelor of Arts" },
+                    { value: "B.Sc", label: "B.Sc – Bachelor of Science" },
+                    { value: "B.Com", label: "B.Com – Bachelor of Commerce" }
+                ],
+                postgraduate: [
+                    { value: "MA", label: "MA – Master of Arts" },
+                    { value: "M.Sc", label: "M.Sc – Master of Science" },
+                    { value: "MBA", label: "MBA – Master of Business Administration" }
+                ]
+            }
+        };
+
+        // Fallback specializations
+        this.specializationsData = {
+            specializations: [
+                "Computer Science", "Electrical Engineering", "Mechanical Engineering",
+                "Civil Engineering", "Business Administration", "Commerce",
+                "Arts", "Science", "Medicine", "Law"
+            ]
+        };
+
+        // Fallback job titles
+        this.jobTitlesData = {
+            job_titles: [
+                "Software Developer", "Software Engineer", "Web Developer",
+                "Data Analyst", "Business Analyst", "Project Manager",
+                "Product Manager", "UX Designer", "Graphic Designer",
+                "Marketing Manager", "Sales Executive", "HR Manager"
+            ]
+        };
+
+        // Fallback employment types
+        this.employmentTypesData = {
+            employment_types: [
+                "Full-time", "Part-time", "Contract", "Internship", 
+                "Freelance", "Remote", "Self-employed"
+            ]
+        };
+    }
+
+    async searchIndianColleges(query) {
+        try {
+            // First try to fetch from our own API endpoint
+            const response = await fetch(`/api/indian-colleges?q=${encodeURIComponent(query)}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    return data.colleges || [];
+                }
+            }
+            
+            // Fallback to static list if API fails
+            return this.getStaticColleges(query);
+            
+        } catch (error) {
+            console.error('Error fetching colleges:', error);
+            return this.getStaticColleges(query);
+        }
+    }
+
+    getStaticColleges(query) {
+        const staticColleges = [
+            "Indian Institute of Technology Bombay",
+            "Indian Institute of Technology Delhi",
+            "Indian Institute of Technology Madras",
+            "Indian Institute of Technology Kanpur",
+            "Indian Institute of Technology Kharagpur",
+            "Indian Institute of Technology Roorkee",
+            "University of Delhi",
+            "University of Mumbai",
+            "University of Calcutta",
+            "University of Madras",
+            "Anna University",
+            "Jawaharlal Nehru University",
+            "Banaras Hindu University",
+            "University of Hyderabad",
+            "University of Pune",
+            "National Institute of Technology Trichy",
+            "Birla Institute of Technology and Science",
+            "Indian Institute of Science",
+            "All India Institute of Medical Sciences",
+            "Indian Statistical Institute",
+            "Indian Institute of Management Ahmedabad",
+            "Indian Institute of Management Bangalore",
+            "Indian Institute of Management Calcutta",
+            "Indian Institute of Management Lucknow",
+            "Delhi Technological University",
+            "Jadavpur University",
+            "University of Rajasthan",
+            "University of Mysore",
+            "University of Kerala",
+            "Panjab University"
+        ];
+        
+        const lowerQuery = query.toLowerCase();
+        return staticColleges.filter(college => 
+            college.toLowerCase().includes(lowerQuery)
+        ).slice(0, 10);
+    }
+
     async initFirebaseAuth() {
         try {
             // Wait for auth state to be determined
@@ -151,10 +292,15 @@ class ProfileManager {
             });
             
             await this.loadUserData();
+            await this.loadDataSets();
             this.initEventListeners();
             this.initCloudinaryWidget();
+            this.initProjectCloudinaryWidget();
             this.updateSocialIcons();
             await this.loadSwapRequests();
+            
+            // Initialize enhanced UI components
+            this.initEnhancedUI();
         } catch (error) {
             console.error('Authentication error:', error);
             this.showNotification('Please log in to access your profile', 'error');
@@ -162,6 +308,354 @@ class ProfileManager {
                 window.location.href = '/login';
             }, 2000);
         }
+    }
+
+    initEnhancedUI() {
+        // Initialize date pickers
+        this.initDatePickers();
+        
+        // Initialize autocomplete for existing elements
+        this.initCollegeAutocomplete();
+        this.initJobTitleAutocomplete();
+        this.initTechnologyAutocomplete();
+        this.initLocationAutocomplete();
+        
+        // Initialize project links functionality
+        this.initProjectLinks();
+    }
+
+    initDatePickers() {
+        // Add calendar icons to all month inputs
+        document.querySelectorAll('input[type="month"]').forEach(input => {
+            const container = input.closest('.input-with-icon') || input.parentElement;
+            if (container && !container.querySelector('.fa-calendar-alt')) {
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-calendar-alt';
+                container.style.position = 'relative';
+                container.insertBefore(icon, input);
+                
+                // Add padding to input
+                input.style.paddingLeft = '48px';
+            }
+            
+            // Add click handler to open native date picker
+            input.addEventListener('focus', (e) => {
+                if (this.isEditMode) {
+                    e.target.showPicker?.();
+                }
+            });
+        });
+    }
+
+    initCollegeAutocomplete() {
+        const collegeInputs = document.querySelectorAll('.edu-institution');
+        
+        collegeInputs.forEach(input => {
+            let timeoutId;
+            
+            input.addEventListener('input', async (e) => {
+                clearTimeout(timeoutId);
+                const query = e.target.value.trim();
+                
+                if (query.length < 2) {
+                    this.hideCollegeSuggestions(input);
+                    return;
+                }
+                
+                timeoutId = setTimeout(async () => {
+                    const suggestions = await this.searchIndianColleges(query);
+                    this.showCollegeSuggestions(input, suggestions);
+                }, 300);
+            });
+            
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    this.hideCollegeSuggestions(input);
+                }, 200);
+            });
+            
+            // Create suggestions container if not exists
+            if (!input.nextElementSibling?.classList.contains('autocomplete-suggestions')) {
+                const suggestionsContainer = document.createElement('div');
+                suggestionsContainer.className = 'autocomplete-suggestions';
+                suggestionsContainer.style.display = 'none';
+                input.parentNode.insertBefore(suggestionsContainer, input.nextSibling);
+            }
+        });
+    }
+
+    initJobTitleAutocomplete() {
+        const jobTitleInputs = document.querySelectorAll('.exp-title[type="text"]');
+        
+        jobTitleInputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                
+                if (!this.jobTitlesData || query.length < 1) {
+                    this.hideSuggestionsForInput(input);
+                    return;
+                }
+                
+                const suggestions = this.jobTitlesData.job_titles.filter(title =>
+                    title.toLowerCase().includes(query)
+                ).slice(0, 10);
+                
+                this.showJobTitleSuggestions(input, suggestions);
+            });
+            
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    this.hideSuggestionsForInput(input);
+                }, 200);
+            });
+            
+            // Create suggestions container if not exists
+            if (!input.nextElementSibling?.classList.contains('autocomplete-suggestions')) {
+                const suggestionsContainer = document.createElement('div');
+                suggestionsContainer.className = 'autocomplete-suggestions';
+                suggestionsContainer.style.display = 'none';
+                input.parentNode.insertBefore(suggestionsContainer, input.nextSibling);
+            }
+        });
+    }
+
+    initTechnologyAutocomplete() {
+        const techInputs = document.querySelectorAll('.project-technologies, .exp-skills');
+        
+        techInputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const lastComma = query.lastIndexOf(',');
+                const currentTerm = lastComma === -1 ? query : query.substring(lastComma + 1).trim();
+                
+                if (currentTerm.length < 1) {
+                    this.hideSuggestionsForInput(input);
+                    return;
+                }
+                
+                // Use skills data from skills-data.js
+                if (window.skillsData && Array.isArray(window.skillsData)) {
+                    const suggestions = window.skillsData.filter(skill =>
+                        skill.toLowerCase().includes(currentTerm.toLowerCase())
+                    ).slice(0, 10);
+                    
+                    this.showTechSuggestions(input, suggestions, (selectedSkill) => {
+                        this.addTechnologyToInput(input, selectedSkill);
+                    });
+                }
+            });
+            
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    this.hideSuggestionsForInput(input);
+                }, 200);
+            });
+            
+            // Create suggestions container if not exists
+            if (!input.nextElementSibling?.classList.contains('autocomplete-suggestions')) {
+                const suggestionsContainer = document.createElement('div');
+                suggestionsContainer.className = 'autocomplete-suggestions';
+                suggestionsContainer.style.display = 'none';
+                input.parentNode.insertBefore(suggestionsContainer, input.nextSibling);
+            }
+        });
+    }
+
+    initLocationAutocomplete() {
+        const locationInputs = document.querySelectorAll('.edu-location, .exp-location');
+        
+        locationInputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value.trim();
+                
+                if (value.length < 1) {
+                    this.hideSuggestionsForInput(input);
+                    return;
+                }
+                
+                const suggestions = this.getCitySuggestions(value);
+                this.showLocationSuggestions(input, suggestions);
+            });
+            
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    this.hideSuggestionsForInput(input);
+                }, 200);
+            });
+            
+            // Create suggestions container if not exists
+            if (!input.nextElementSibling?.classList.contains('autocomplete-suggestions')) {
+                const suggestionsContainer = document.createElement('div');
+                suggestionsContainer.className = 'autocomplete-suggestions';
+                suggestionsContainer.style.display = 'none';
+                input.parentNode.insertBefore(suggestionsContainer, input.nextSibling);
+            }
+        });
+    }
+
+    initProjectLinks() {
+        // Initialize existing project link add buttons
+        document.querySelectorAll('.btn-add-project-link').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const projectItem = e.target.closest('.project-edit');
+                this.addProjectLink(projectItem);
+            });
+        });
+        
+        // Initialize existing remove link buttons
+        document.querySelectorAll('.btn-remove-link').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.project-link-item').remove();
+            });
+        });
+    }
+
+    showCollegeSuggestions(input, suggestions) {
+        const container = input.nextElementSibling;
+        if (!container || !container.classList.contains('autocomplete-suggestions')) return;
+        
+        if (suggestions.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        
+        container.innerHTML = suggestions.map(college => `
+            <div class="suggestion-item" data-value="${college}">
+                <span class="suggestion-text">${college}</span>
+            </div>
+        `).join('');
+        
+        container.style.display = 'block';
+        
+        container.querySelectorAll('.suggestion-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                input.value = e.currentTarget.dataset.value;
+                container.style.display = 'none';
+                input.focus();
+            });
+        });
+    }
+
+    showJobTitleSuggestions(input, suggestions) {
+        const container = input.nextElementSibling;
+        if (!container || !container.classList.contains('autocomplete-suggestions')) return;
+        
+        if (suggestions.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        
+        container.innerHTML = suggestions.map(title => `
+            <div class="suggestion-item" data-value="${title}">
+                <span class="suggestion-text">${title}</span>
+            </div>
+        `).join('');
+        
+        container.style.display = 'block';
+        
+        container.querySelectorAll('.suggestion-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                input.value = e.currentTarget.dataset.value;
+                container.style.display = 'none';
+                input.focus();
+            });
+        });
+    }
+
+    showTechSuggestions(input, suggestions, onSelect) {
+        const container = input.nextElementSibling;
+        if (!container || !container.classList.contains('autocomplete-suggestions')) return;
+        
+        if (suggestions.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        
+        container.innerHTML = suggestions.map(skill => `
+            <div class="suggestion-item" data-skill="${skill}">
+                <span>${skill}</span>
+            </div>
+        `).join('');
+        
+        container.style.display = 'block';
+        
+        container.querySelectorAll('.suggestion-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                onSelect(e.currentTarget.dataset.skill);
+                container.style.display = 'none';
+                input.focus();
+            });
+        });
+    }
+
+    showLocationSuggestions(input, suggestions) {
+        const container = input.nextElementSibling;
+        if (!container || !container.classList.contains('autocomplete-suggestions')) return;
+        
+        if (suggestions.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        
+        container.innerHTML = suggestions.map(cityObj => `
+            <div class="suggestion-item" data-value="${cityObj.city}, ${cityObj.state}">
+                <span class="suggestion-city">${cityObj.city}</span>
+                <span class="suggestion-state">${cityObj.state}</span>
+            </div>
+        `).join('');
+        
+        container.style.display = 'block';
+        
+        container.querySelectorAll('.suggestion-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                input.value = e.currentTarget.dataset.value;
+                container.style.display = 'none';
+                input.focus();
+            });
+        });
+    }
+
+    addTechnologyToInput(input, technology) {
+        const currentValue = input.value.trim();
+        const technologies = currentValue.split(',').map(t => t.trim()).filter(t => t);
+        
+        // Check if technology already exists
+        if (technologies.includes(technology)) {
+            return;
+        }
+        
+        // Add new technology
+        if (currentValue) {
+            input.value = currentValue + ', ' + technology;
+        } else {
+            input.value = technology;
+        }
+        
+        // Focus on input and move cursor to end
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+    }
+
+    hideCollegeSuggestions(input) {
+        const container = input.nextElementSibling;
+        if (container && container.classList.contains('autocomplete-suggestions')) {
+            container.style.display = 'none';
+        }
+    }
+
+    hideSuggestionsForInput(input) {
+        const container = input.nextElementSibling;
+        if (container && container.classList.contains('autocomplete-suggestions')) {
+            container.style.display = 'none';
+        }
+    }
+
+    getCitySuggestions(query) {
+        const lowerQuery = query.toLowerCase();
+        return indianCities.filter(cityObj => 
+            cityObj.city.toLowerCase().includes(lowerQuery) ||
+            cityObj.state.toLowerCase().includes(lowerQuery)
+        ).slice(0, 8);
     }
 
     async loadSwapRequests() {
@@ -213,7 +707,6 @@ class ProfileManager {
             }
         } catch (error) {
             console.error('Error loading user data:', error);
-            // this.showNotification('Error loading profile data', 'error');
         }
     }
 
@@ -348,7 +841,7 @@ class ProfileManager {
         
         if (this.userData.education && Array.isArray(this.userData.education)) {
             this.userData.education.forEach((edu, index) => {
-                this.createEducationView(edu, index, container);
+                this.createEducationItem(edu, index, container);
             });
         }
     }
@@ -359,7 +852,7 @@ class ProfileManager {
         
         if (this.userData.experience && Array.isArray(this.userData.experience)) {
             this.userData.experience.forEach((exp, index) => {
-                this.createExperienceView(exp, index, container);
+                this.createExperienceItem(exp, index, container);
             });
         }
     }
@@ -370,7 +863,7 @@ class ProfileManager {
         
         if (this.userData.certifications && Array.isArray(this.userData.certifications)) {
             this.userData.certifications.forEach((cert, index) => {
-                this.createCertificationView(cert, index, container);
+                this.createCertificationItem(cert, index, container);
             });
         }
     }
@@ -381,7 +874,7 @@ class ProfileManager {
         
         if (this.userData.projects && Array.isArray(this.userData.projects)) {
             this.userData.projects.forEach((project, index) => {
-                this.createProjectView(project, index, container);
+                this.createProjectItem(project, index, container);
             });
         }
     }
@@ -392,7 +885,7 @@ class ProfileManager {
         
         if (this.userData.achievements && Array.isArray(this.userData.achievements)) {
             this.userData.achievements.forEach((achievement, index) => {
-                this.createAchievementView(achievement, index, container);
+                this.createAchievementItem(achievement, index, container);
             });
         }
     }
@@ -403,217 +896,849 @@ class ProfileManager {
         
         if (this.userData.skills && Array.isArray(this.userData.skills)) {
             this.userData.skills.forEach((skill, index) => {
-                this.createSkillView(skill, index, container);
+                this.createSkillItem(skill, index, container);
             });
         }
     }
 
-    createEducationView(edu, index, container) {
+    createEducationItem(edu, index, container) {
         const item = document.createElement('div');
-        item.className = 'education-item';
+        item.className = 'education-item enhanced-item';
         item.dataset.index = index;
         
-        item.innerHTML = `
-            <div class="education-view">
-                <h4>${edu.degree_type || ''} ${edu.field_of_study ? 'in ' + edu.field_of_study : ''}</h4>
-                <p class="institution">${edu.institution_name || ''}</p>
-                <p class="details">
-                    ${edu.start_date || ''} - ${edu.current ? 'Present' : (edu.end_date || '')}
-                    ${edu.grade ? ' | Grade: ' + edu.grade : ''}
-                </p>
-                ${edu.description ? '<p class="description">' + edu.description + '</p>' : ''}
+        // Create view mode
+        const viewView = document.createElement('div');
+        viewView.className = 'education-view';
+        
+        let details = `${edu.start_date || ''} - `;
+        details += edu.current ? 'Present' : (edu.end_date || '');
+        if (edu.grade) details += ` | Grade: ${edu.grade}`;
+        
+        viewView.innerHTML = `
+            <h4>${edu.degree_type || ''} ${edu.field_of_study ? 'in ' + edu.field_of_study : ''}</h4>
+            <p class="institution">
+                <i class="fas fa-university"></i>
+                ${edu.institution_name || ''}
+            </p>
+            <p class="details">
+                <i class="fas fa-calendar-alt"></i>
+                ${details}
+            </p>
+            ${edu.location ? `<p class="location"><i class="fas fa-map-marker-alt"></i> ${edu.location}</p>` : ''}
+            ${edu.description ? `<p class="description">${edu.description}</p>` : ''}
+        `;
+        
+        // Create edit mode
+        const editView = document.createElement('div');
+        editView.className = 'education-edit';
+        editView.style.display = 'none';
+        
+        editView.innerHTML = `
+            <div class="form-group enhanced">
+                <label>Degree Type</label>
+                <div class="select-with-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                    <select class="edu-degree" disabled>
+                        <option value="">Select Degree Type</option>
+                    </select>
+                </div>
             </div>
-            <div class="education-edit" style="display: none;">
-                <input type="text" class="edu-degree" value="${edu.degree_type || ''}" placeholder="Degree Type" disabled>
-                <input type="text" class="edu-field" value="${edu.field_of_study || ''}" placeholder="Field of Study" disabled>
-                <input type="text" class="edu-institution" value="${edu.institution_name || ''}" placeholder="Institution Name" disabled>
-                <input type="text" class="edu-institution-type" value="${edu.institution_type || ''}" placeholder="Institution Type" disabled>
-                <input type="text" class="edu-location" value="${edu.location || ''}" placeholder="Location" disabled>
-                <input type="month" class="edu-start-date" value="${edu.start_date || ''}" disabled>
-                <input type="month" class="edu-end-date" value="${edu.end_date || ''}" disabled>
-                <label><input type="checkbox" class="edu-current" ${edu.current ? 'checked' : ''} disabled> Currently Studying</label>
-                <input type="text" class="edu-grade" value="${edu.grade || ''}" placeholder="Grade" disabled>
-                <textarea class="edu-description" placeholder="Description" disabled>${edu.description || ''}</textarea>
+            
+            <div class="form-group enhanced">
+                <label>Specialization</label>
+                <div class="select-with-icon">
+                    <i class="fas fa-book"></i>
+                    <select class="edu-field" disabled>
+                        <option value="">Select Specialization</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Institution Name</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-university"></i>
+                    <input type="text" class="edu-institution" value="${edu.institution_name || ''}" placeholder="Search college/university..." disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Institution Type</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-building"></i>
+                    <input type="text" class="edu-institution-type" value="${edu.institution_type || ''}" placeholder="e.g., University, College" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Location</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <input type="text" class="edu-location" value="${edu.location || ''}" placeholder="City, State" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced date-picker-container">
+                <label>Start Date</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="month" class="edu-start-date" value="${edu.start_date || ''}" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced date-picker-container">
+                <label>End Date</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="month" class="edu-end-date" value="${edu.end_date || ''}" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" class="edu-current" ${edu.current ? 'checked' : ''} disabled> 
+                    <span>Currently Studying</span>
+                </label>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Grade/Percentage</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-chart-line"></i>
+                    <input type="text" class="edu-grade" value="${edu.grade || ''}" placeholder="e.g., 3.8/4.0 or 85%" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced" style="grid-column: span 2;">
+                <label>Description</label>
+                <div class="textarea-with-icon">
+                    <i class="fas fa-info-circle"></i>
+                    <textarea class="edu-description" placeholder="Additional details about your education..." rows="3" disabled>${edu.description || ''}</textarea>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced" style="grid-column: span 2; text-align: right;">
                 <button type="button" class="btn-remove-education" style="display: none;">
-                    <i class="fas fa-trash"></i> Remove
+                    <i class="fas fa-trash"></i> Remove Education
                 </button>
             </div>
         `;
         
+        item.appendChild(viewView);
+        item.appendChild(editView);
         container.appendChild(item);
+        
+        // Populate dropdowns for edit view
+        this.populateEducationDropdowns(editView, edu);
+        
+        // Initialize enhanced UI for this item
+        this.initEnhancedUIForItem(editView);
     }
 
-    createExperienceView(exp, index, container) {
+    populateEducationDropdowns(container, edu) {
+        const degreeSelect = container.querySelector('.edu-degree');
+        const fieldSelect = container.querySelector('.edu-field');
+        
+        if (this.degreesData && degreeSelect) {
+            degreeSelect.innerHTML = '<option value="">Select Degree Type</option>';
+            
+            // Add degree categories
+            Object.entries(this.degreesData.degree_types).forEach(([category, degrees]) => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category.charAt(0).toUpperCase() + category.slice(1);
+                
+                degrees.forEach(degree => {
+                    const option = document.createElement('option');
+                    option.value = degree.value;
+                    option.textContent = degree.label;
+                    if (edu.degree_type && (edu.degree_type === degree.value || edu.degree_type === degree.label)) {
+                        option.selected = true;
+                    }
+                    optgroup.appendChild(option);
+                });
+                
+                degreeSelect.appendChild(optgroup);
+            });
+        }
+        
+        if (this.specializationsData && fieldSelect) {
+            fieldSelect.innerHTML = '<option value="">Select Specialization</option>';
+            
+            this.specializationsData.specializations.forEach(specialization => {
+                const option = document.createElement('option');
+                option.value = specialization;
+                option.textContent = specialization;
+                if (edu.field_of_study && edu.field_of_study === specialization) {
+                    option.selected = true;
+                }
+                fieldSelect.appendChild(option);
+            });
+        }
+    }
+
+    createExperienceItem(exp, index, container) {
         const item = document.createElement('div');
-        item.className = 'experience-item';
+        item.className = 'experience-item enhanced-item';
         item.dataset.index = index;
         
-        item.innerHTML = `
-            <div class="experience-view">
-                <h4>${exp.job_title || ''} at ${exp.company || ''}</h4>
-                <p class="details">
-                    ${exp.employment_type || ''} | 
-                    ${exp.start_date || ''} - ${exp.current ? 'Present' : (exp.end_date || '')}
-                    ${exp.location ? ' | ' + exp.location : ''}
+        // Create view mode
+        const viewView = document.createElement('div');
+        viewView.className = 'experience-view';
+        
+        let details = `${exp.employment_type || ''} | `;
+        details += `${exp.start_date || ''} - `;
+        details += exp.current ? 'Present' : (exp.end_date || '');
+        if (exp.location) details += ` | ${exp.location}`;
+        if (exp.remote) details += ' (Remote)';
+        
+        viewView.innerHTML = `
+            <h4>${exp.job_title || ''} at ${exp.company || ''}</h4>
+            <p class="details">
+                <i class="fas fa-calendar-alt"></i>
+                ${details}
+            </p>
+            ${exp.responsibilities ? `<p class="responsibilities">${exp.responsibilities}</p>` : ''}
+            ${exp.skills_used && exp.skills_used.length ? `
+                <p class="skills-used">
+                    <i class="fas fa-code"></i>
+                    Skills: ${exp.skills_used.join(', ')}
                 </p>
-                ${exp.responsibilities ? '<p class="responsibilities">' + exp.responsibilities + '</p>' : ''}
-                ${exp.skills_used && exp.skills_used.length ? '<p class="skills-used">Skills: ' + exp.skills_used.join(', ') + '</p>' : ''}
+            ` : ''}
+        `;
+        
+        // Create edit mode
+        const editView = document.createElement('div');
+        editView.className = 'experience-edit';
+        editView.style.display = 'none';
+        
+        editView.innerHTML = `
+            <div class="form-group enhanced">
+                <label>Job Title</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-briefcase"></i>
+                    <input type="text" class="exp-title" value="${exp.job_title || ''}" placeholder="Search job title..." disabled>
+                </div>
             </div>
-            <div class="experience-edit" style="display: none;">
-                <input type="text" class="exp-title" value="${exp.job_title || ''}" placeholder="Job Title" disabled>
-                <input type="text" class="exp-company" value="${exp.company || ''}" placeholder="Company" disabled>
-                <input type="text" class="exp-type" value="${exp.employment_type || ''}" placeholder="Employment Type" disabled>
-                <input type="text" class="exp-location" value="${exp.location || ''}" placeholder="Location" disabled>
-                <label><input type="checkbox" class="exp-remote" ${exp.remote ? 'checked' : ''} disabled> Remote</label>
-                <input type="month" class="exp-start-date" value="${exp.start_date || ''}" disabled>
-                <input type="month" class="exp-end-date" value="${exp.end_date || ''}" disabled>
-                <label><input type="checkbox" class="exp-current" ${exp.current ? 'checked' : ''} disabled> Currently Working</label>
-                <textarea class="exp-responsibilities" placeholder="Responsibilities" disabled>${exp.responsibilities || ''}</textarea>
-                <input type="text" class="exp-skills" value="${exp.skills_used ? exp.skills_used.join(', ') : ''}" placeholder="Skills used (comma separated)" disabled>
+            
+            <div class="form-group enhanced">
+                <label>Company</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-building"></i>
+                    <input type="text" class="exp-company" value="${exp.company || ''}" placeholder="Company name" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Employment Type</label>
+                <div class="select-with-icon">
+                    <i class="fas fa-user-tie"></i>
+                    <select class="exp-type" disabled>
+                        <option value="">Select Employment Type</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Location</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <input type="text" class="exp-location" value="${exp.location || ''}" placeholder="City, State" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" class="exp-remote" ${exp.remote ? 'checked' : ''} disabled> 
+                    <span>Remote Position</span>
+                </label>
+            </div>
+            
+            <div class="form-group enhanced date-picker-container">
+                <label>Start Date</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="month" class="exp-start-date" value="${exp.start_date || ''}" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced date-picker-container">
+                <label>End Date</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="month" class="exp-end-date" value="${exp.end_date || ''}" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" class="exp-current" ${exp.current ? 'checked' : ''} disabled> 
+                    <span>Currently Working</span>
+                </label>
+            </div>
+            
+            <div class="form-group enhanced" style="grid-column: span 2;">
+                <label>Responsibilities</label>
+                <div class="textarea-with-icon">
+                    <i class="fas fa-tasks"></i>
+                    <textarea class="exp-responsibilities" placeholder="Describe your responsibilities and achievements..." rows="4" disabled>${exp.responsibilities || ''}</textarea>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced" style="grid-column: span 2;">
+                <label>Skills Used</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-code"></i>
+                    <input type="text" class="exp-skills" value="${exp.skills_used ? exp.skills_used.join(', ') : ''}" placeholder="Enter skills separated by commas" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced" style="grid-column: span 2; text-align: right;">
                 <button type="button" class="btn-remove-experience" style="display: none;">
-                    <i class="fas fa-trash"></i> Remove
+                    <i class="fas fa-trash"></i> Remove Experience
                 </button>
             </div>
         `;
         
+        item.appendChild(viewView);
+        item.appendChild(editView);
         container.appendChild(item);
+        
+        // Populate dropdowns for edit view
+        this.populateExperienceDropdowns(editView, exp);
+        
+        // Initialize enhanced UI for this item
+        this.initEnhancedUIForItem(editView);
     }
 
-    createCertificationView(cert, index, container) {
+    populateExperienceDropdowns(container, exp) {
+        const typeSelect = container.querySelector('.exp-type');
+        
+        if (this.employmentTypesData && typeSelect) {
+            typeSelect.innerHTML = '<option value="">Select Employment Type</option>';
+            
+            this.employmentTypesData.employment_types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                if (exp.employment_type && exp.employment_type === type) {
+                    option.selected = true;
+                }
+                typeSelect.appendChild(option);
+            });
+        }
+    }
+
+    createCertificationItem(cert, index, container) {
         const item = document.createElement('div');
         item.className = 'certification-item';
         item.dataset.index = index;
         
-        item.innerHTML = `
-            <div class="certification-view">
-                <h4>${cert.name || ''}</h4>
-                <p class="organization">by ${cert.organization || ''}</p>
-                <p class="details">
-                    Issued: ${cert.issue_date || ''}
-                    ${cert.expiry_date ? ' | Expires: ' + cert.expiry_date : ''}
-                    ${cert.credential_id ? ' | ID: ' + cert.credential_id : ''}
+        // Create view mode
+        const viewView = document.createElement('div');
+        viewView.className = 'certification-view';
+        
+        let details = `Issued: ${cert.issue_date || ''}`;
+        if (cert.expiry_date && !cert.no_expiry) details += ` | Expires: ${cert.expiry_date}`;
+        if (cert.credential_id) details += ` | ID: ${cert.credential_id}`;
+        if (cert.no_expiry) details += ' | No Expiry';
+        
+        viewView.innerHTML = `
+            <h4>${cert.name || ''}</h4>
+            <p class="organization">
+                <i class="fas fa-certificate"></i>
+                by ${cert.organization || ''}
+            </p>
+            <p class="details">
+                <i class="fas fa-calendar-alt"></i>
+                ${details}
+            </p>
+            ${cert.skills && cert.skills.length ? `
+                <p class="skills">
+                    <i class="fas fa-code"></i>
+                    Skills: ${cert.skills.join(', ')}
                 </p>
-                ${cert.skills && cert.skills.length ? '<p class="skills">Skills: ' + cert.skills.join(', ') + '</p>' : ''}
+            ` : ''}
+            ${cert.certificate_url ? `
+                <a href="${cert.certificate_url}" target="_blank" class="btn-view-certificate">
+                    <i class="fas fa-eye"></i> View Certificate
+                </a>
+            ` : ''}
+        `;
+        
+        // Create edit mode
+        const editView = document.createElement('div');
+        editView.className = 'certification-edit';
+        editView.style.display = 'none';
+        
+        editView.innerHTML = `
+            <div class="form-group enhanced">
+                <label>Certification Name</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-certificate"></i>
+                    <input type="text" class="cert-name" value="${cert.name || ''}" placeholder="Certification Name" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Issuing Organization</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-building"></i>
+                    <input type="text" class="cert-organization" value="${cert.organization || ''}" placeholder="Issuing Organization" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced date-picker-container">
+                <label>Issue Date</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="month" class="cert-issue-date" value="${cert.issue_date || ''}" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced date-picker-container">
+                <label>Expiry Date</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="month" class="cert-expiry-date" value="${cert.expiry_date || ''}" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" class="cert-no-expiry" ${cert.no_expiry ? 'checked' : ''} disabled> 
+                    <span>No Expiry</span>
+                </label>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Credential ID</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-id-card"></i>
+                    <input type="text" class="cert-credential-id" value="${cert.credential_id || ''}" placeholder="Credential ID" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Skills</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-code"></i>
+                    <input type="text" class="cert-skills" value="${cert.skills ? cert.skills.join(', ') : ''}" placeholder="Skills (comma separated)" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced cert-upload-section">
+                <button type="button" class="btn-upload-certificate" disabled>
+                    <i class="fas fa-upload"></i> Upload Certificate
+                </button>
+                <input type="hidden" class="cert-certificate-url" value="${cert.certificate_url || ''}">
                 ${cert.certificate_url ? `
-                    <a href="${cert.certificate_url}" target="_blank" class="btn-view-certificate">
-                        <i class="fas fa-eye"></i> View Certificate
+                    <a href="${cert.certificate_url}" target="_blank" class="current-certificate">
+                        <i class="fas fa-eye"></i> View Current Certificate
                     </a>
                 ` : ''}
             </div>
-            <div class="certification-edit" style="display: none;">
-                <input type="text" class="cert-name" value="${cert.name || ''}" placeholder="Certification Name" disabled>
-                <input type="text" class="cert-organization" value="${cert.organization || ''}" placeholder="Issuing Organization" disabled>
-                <input type="month" class="cert-issue-date" value="${cert.issue_date || ''}" disabled>
-                <input type="month" class="cert-expiry-date" value="${cert.expiry_date || ''}" disabled>
-                <label><input type="checkbox" class="cert-no-expiry" ${cert.no_expiry ? 'checked' : ''} disabled> No Expiry</label>
-                <input type="text" class="cert-credential-id" value="${cert.credential_id || ''}" placeholder="Credential ID" disabled>
-                <input type="text" class="cert-skills" value="${cert.skills ? cert.skills.join(', ') : ''}" placeholder="Skills (comma separated)" disabled>
-                <div class="cert-upload-section">
-                    <button type="button" class="btn-upload-certificate" disabled>
-                        <i class="fas fa-upload"></i> Upload Certificate
-                    </button>
-                    <input type="hidden" class="cert-certificate-url" value="${cert.certificate_url || ''}">
-                    ${cert.certificate_url ? `
-                        <a href="${cert.certificate_url}" target="_blank" class="current-certificate">
-                            Current Certificate
-                        </a>
-                    ` : ''}
-                </div>
+            
+            <div class="form-group enhanced" style="text-align: right;">
                 <button type="button" class="btn-remove-certification" style="display: none;">
-                    <i class="fas fa-trash"></i> Remove
+                    <i class="fas fa-trash"></i> Remove Certification
                 </button>
             </div>
         `;
         
+        item.appendChild(viewView);
+        item.appendChild(editView);
         container.appendChild(item);
     }
 
-    createProjectView(project, index, container) {
+    createProjectItem(project, index, container) {
         const item = document.createElement('div');
-        item.className = 'project-item';
+        item.className = 'project-item enhanced-item';
         item.dataset.index = index;
         
-        item.innerHTML = `
-            <div class="project-view">
-                <h4>${project.title || ''}</h4>
-                ${project.type ? '<p class="type">' + project.type + '</p>' : ''}
-                ${project.description ? '<p class="description">' + project.description + '</p>' : ''}
-                ${project.technologies && project.technologies.length ? '<p class="technologies">Technologies: ' + project.technologies.join(', ') + '</p>' : ''}
-                ${project.role ? '<p class="role">Role: ' + project.role + '</p>' : ''}
-                ${project.links && project.links.length ? `
-                    <div class="project-links">
-                        ${project.links.map(link => `
-                            <a href="${link.url}" target="_blank" class="project-link">${link.name}</a>
-                        `).join('')}
+        // Create view mode
+        const viewView = document.createElement('div');
+        viewView.className = 'project-view';
+        
+        let linksHTML = '';
+        if (project.links && project.links.length > 0) {
+            linksHTML = '<div class="project-links">';
+            project.links.forEach(link => {
+                let icon = 'fa-link';
+                if (link.name.includes('GitHub') || link.name.includes('github')) icon = 'fa-github';
+                if (link.name.includes('Live') || link.name.includes('live')) icon = 'fa-globe';
+                if (link.name.includes('Demo') || link.name.includes('demo')) icon = 'fa-play-circle';
+                
+                linksHTML += `
+                    <a href="${link.url}" target="_blank" class="project-link">
+                        <i class="fas ${icon}"></i> ${link.name}
+                    </a>
+                `;
+            });
+            linksHTML += '</div>';
+        }
+        
+        viewView.innerHTML = `
+            <h4>${project.title || ''}</h4>
+            ${project.type ? `<p class="type"><i class="fas fa-project-diagram"></i> ${project.type}</p>` : ''}
+            ${project.description ? `<p class="description">${project.description}</p>` : ''}
+            ${project.technologies && project.technologies.length ? `
+                <p class="technologies">
+                    <i class="fas fa-code"></i>
+                    Technologies: ${project.technologies.join(', ')}
+                </p>
+            ` : ''}
+            ${project.role ? `<p class="role"><i class="fas fa-user-tie"></i> Role: ${project.role}</p>` : ''}
+            ${linksHTML}
+        `;
+        
+        // Create edit mode
+        const editView = document.createElement('div');
+        editView.className = 'project-edit';
+        editView.style.display = 'none';
+        
+        // Create links HTML for edit mode
+        let linksEditHTML = '';
+        if (project.links && project.links.length > 0) {
+            project.links.forEach(link => {
+                linksEditHTML += `
+                    <div class="project-link-item">
+                        <span><strong>${link.name}:</strong> ${link.url}</span>
+                        <button type="button" class="btn-remove-link" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <input type="hidden" class="project-link-name" value="${link.name}">
+                        <input type="hidden" class="project-link-url" value="${link.url}">
                     </div>
-                ` : ''}
+                `;
+            });
+        }
+        
+        // Create images HTML
+        let imagesHTML = '';
+        if (project.images && project.images.length > 0) {
+            project.images.forEach(image => {
+                imagesHTML += `
+                    <div class="project-image-preview">
+                        <img src="${image}" alt="Project Image">
+                        <button type="button" class="remove-image" style="display: none;">×</button>
+                        <input type="hidden" class="project-image-url" value="${image}">
+                    </div>
+                `;
+            });
+        }
+        
+        editView.innerHTML = `
+            <div class="form-group enhanced">
+                <label>Project Title</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-heading"></i>
+                    <input type="text" class="project-title" value="${project.title || ''}" placeholder="Enter project title" disabled>
+                </div>
             </div>
-            <div class="project-edit" style="display: none;">
-                <input type="text" class="project-title" value="${project.title || ''}" placeholder="Project Title" disabled>
-                <input type="text" class="project-type" value="${project.type || ''}" placeholder="Project Type" disabled>
-                <textarea class="project-description" placeholder="Description" disabled>${project.description || ''}</textarea>
-                <input type="text" class="project-technologies" value="${project.technologies ? project.technologies.join(', ') : ''}" placeholder="Technologies (comma separated)" disabled>
-                <input type="text" class="project-role" value="${project.role || ''}" placeholder="Your Role" disabled>
-                <div class="project-links-input">
-                    <input type="text" class="project-link-name" placeholder="Link Name" disabled>
-                    <input type="url" class="project-link-url" placeholder="URL" disabled>
-                    <button type="button" class="btn-add-project-link" disabled>Add Link</button>
-                    <div class="project-links-list"></div>
+            
+            <div class="form-group enhanced">
+                <label>Project Type</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-project-diagram"></i>
+                    <input type="text" class="project-type" value="${project.type || ''}" placeholder="e.g., Web Application, Mobile App" disabled>
                 </div>
-                <div class="project-images">
-                    <button type="button" class="btn-upload-project-images" disabled>
-                        <i class="fas fa-image"></i> Upload Images
+            </div>
+            
+            <div class="form-group enhanced" style="grid-column: span 2;">
+                <label>Description</label>
+                <div class="textarea-with-icon">
+                    <i class="fas fa-align-left"></i>
+                    <textarea class="project-description" placeholder="Describe your project, its purpose, and key features..." rows="4" disabled>${project.description || ''}</textarea>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced" style="grid-column: span 2;">
+                <label>Technologies Used</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-code"></i>
+                    <input type="text" class="project-technologies" value="${project.technologies ? project.technologies.join(', ') : ''}" placeholder="Enter technologies separated by commas" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Your Role</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-user-tie"></i>
+                    <input type="text" class="project-role" value="${project.role || ''}" placeholder="e.g., Frontend Developer, Project Lead" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced project-links-input" style="grid-column: span 2;">
+                <label>Project Links</label>
+                <div class="link-input-row">
+                    <div class="select-with-icon">
+                        <i class="fas fa-link"></i>
+                        <select class="project-link-type" disabled>
+                            <option value="github">GitHub</option>
+                            <option value="live">Live Demo</option>
+                            <option value="demo">Demo Video</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="input-with-icon">
+                        <i class="fas fa-globe"></i>
+                        <input type="url" class="project-link-url" placeholder="Enter URL" disabled>
+                    </div>
+                    <button type="button" class="btn-add-project-link" disabled>
+                        <i class="fas fa-plus"></i> Add
                     </button>
-                    <div class="project-images-list"></div>
                 </div>
+                <div class="project-links-list">
+                    ${linksEditHTML}
+                </div>
+            </div>
+            
+            <div class="form-group enhanced project-images" style="grid-column: span 2;">
+                <label>Project Images</label>
+                <button type="button" class="btn-upload-enhanced btn-upload-project-images" disabled>
+                    <i class="fas fa-cloud-upload-alt"></i> Upload Project Images
+                </button>
+                <div class="project-images-list">
+                    ${imagesHTML}
+                </div>
+            </div>
+            
+            <div class="form-group enhanced" style="grid-column: span 2; text-align: right;">
                 <button type="button" class="btn-remove-project" style="display: none;">
-                    <i class="fas fa-trash"></i> Remove
+                    <i class="fas fa-trash"></i> Remove Project
                 </button>
             </div>
         `;
         
+        item.appendChild(viewView);
+        item.appendChild(editView);
         container.appendChild(item);
+        
+        // Initialize enhanced UI for this item
+        this.initEnhancedUIForItem(editView);
+        
+        // Add event listeners for links
+        const addLinkBtn = editView.querySelector('.btn-add-project-link');
+        if (addLinkBtn) {
+            addLinkBtn.addEventListener('click', () => {
+                this.addProjectLink(editView);
+            });
+        }
+        
+        // Add event listeners for existing remove buttons
+        editView.querySelectorAll('.btn-remove-link').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.project-link-item').remove();
+            });
+        });
+        
+        // Add event listeners for image remove buttons
+        editView.querySelectorAll('.remove-image').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.project-image-preview').remove();
+            });
+        });
     }
 
-    createAchievementView(achievement, index, container) {
+    createAchievementItem(achievement, index, container) {
         const item = document.createElement('div');
         item.className = 'achievement-item';
         item.dataset.index = index;
         
-        item.innerHTML = `
-            <div class="achievement-view">
-                <h4>${achievement.title || ''}</h4>
-                ${achievement.org ? '<p class="org">by ' + achievement.org + '</p>' : ''}
-                ${achievement.date ? '<p class="date">' + achievement.date + '</p>' : ''}
-                ${achievement.description ? '<p class="description">' + achievement.description + '</p>' : ''}
+        // Create view mode
+        const viewView = document.createElement('div');
+        viewView.className = 'achievement-view';
+        
+        viewView.innerHTML = `
+            <h4>${achievement.title || ''}</h4>
+            ${achievement.org ? `<p class="org"><i class="fas fa-building"></i> by ${achievement.org}</p>` : ''}
+            ${achievement.date ? `<p class="date"><i class="fas fa-calendar-alt"></i> ${achievement.date}</p>` : ''}
+            ${achievement.description ? `<p class="description">${achievement.description}</p>` : ''}
+        `;
+        
+        // Create edit mode
+        const editView = document.createElement('div');
+        editView.className = 'achievement-edit';
+        editView.style.display = 'none';
+        
+        editView.innerHTML = `
+            <div class="form-group enhanced">
+                <label>Achievement Title</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-trophy"></i>
+                    <input type="text" class="achievement-title" value="${achievement.title || ''}" placeholder="Achievement Title" disabled>
+                </div>
             </div>
-            <div class="achievement-edit" style="display: none;">
-                <input type="text" class="achievement-title" value="${achievement.title || ''}" placeholder="Achievement Title" disabled>
-                <input type="text" class="achievement-org" value="${achievement.org || ''}" placeholder="Organization" disabled>
-                <input type="month" class="achievement-date" value="${achievement.date || ''}" disabled>
-                <textarea class="achievement-description" placeholder="Description" disabled>${achievement.description || ''}</textarea>
+            
+            <div class="form-group enhanced">
+                <label>Organization</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-building"></i>
+                    <input type="text" class="achievement-org" value="${achievement.org || ''}" placeholder="Organization" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced date-picker-container">
+                <label>Date</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="month" class="achievement-date" value="${achievement.date || ''}" disabled>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced">
+                <label>Description</label>
+                <div class="textarea-with-icon">
+                    <i class="fas fa-align-left"></i>
+                    <textarea class="achievement-description" placeholder="Description" disabled>${achievement.description || ''}</textarea>
+                </div>
+            </div>
+            
+            <div class="form-group enhanced" style="text-align: right;">
                 <button type="button" class="btn-remove-achievement" style="display: none;">
-                    <i class="fas fa-trash"></i> Remove
+                    <i class="fas fa-trash"></i> Remove Achievement
                 </button>
             </div>
         `;
         
+        item.appendChild(viewView);
+        item.appendChild(editView);
         container.appendChild(item);
     }
 
-    createSkillView(skill, index, container) {
+    createSkillItem(skill, index, container) {
         const item = document.createElement('div');
         item.className = 'skill-item';
         item.dataset.index = index;
         
         item.innerHTML = `
-            <input type="text" class="skill-name" value="${skill.skill_name || ''}" placeholder="Skill name" disabled>
-            <button type="button" class="btn-remove-skill" style="display: none;">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="input-with-icon">
+                <i class="fas fa-star"></i>
+                <input type="text" class="skill-name" value="${skill.skill_name || ''}" placeholder="Skill name" disabled>
+                <button type="button" class="btn-remove-skill" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         `;
         
         container.appendChild(item);
+    }
+
+    initEnhancedUIForItem(item) {
+        // Initialize date pickers
+        item.querySelectorAll('input[type="month"]').forEach(input => {
+            this.initDatePickerForInput(input);
+        });
+        
+        // Initialize autocomplete for colleges
+        const collegeInput = item.querySelector('.edu-institution');
+        if (collegeInput) {
+            this.initAutocompleteForInput(collegeInput, 'college');
+        }
+        
+        // Initialize autocomplete for job titles
+        const jobTitleInput = item.querySelector('.exp-title');
+        if (jobTitleInput && jobTitleInput.tagName === 'INPUT') {
+            this.initAutocompleteForInput(jobTitleInput, 'job-title');
+        }
+        
+        // Initialize autocomplete for technologies
+        const techInput = item.querySelector('.project-technologies');
+        if (techInput) {
+            this.initAutocompleteForInput(techInput, 'technology');
+        }
+        
+        // Initialize autocomplete for skills
+        const skillsInput = item.querySelector('.exp-skills');
+        if (skillsInput) {
+            this.initAutocompleteForInput(skillsInput, 'technology');
+        }
+        
+        // Initialize autocomplete for location
+        const locationInput = item.querySelector('.edu-location, .exp-location');
+        if (locationInput) {
+            this.initAutocompleteForInput(locationInput, 'location');
+        }
+    }
+
+    initDatePickerForInput(input) {
+        input.addEventListener('focus', (e) => {
+            if (this.isEditMode && e.target.showPicker) {
+                e.target.showPicker();
+            }
+        });
+        
+        // Add calendar icon if not present
+        const container = input.closest('.input-with-icon') || input.parentElement;
+        if (container && !container.querySelector('.fa-calendar-alt')) {
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-calendar-alt';
+            container.insertBefore(icon, input);
+            input.style.paddingLeft = '48px';
+        }
+    }
+
+    initAutocompleteForInput(input, type) {
+        // Create suggestions container if not exists
+        if (!input.nextElementSibling?.classList.contains('autocomplete-suggestions')) {
+            const suggestionsContainer = document.createElement('div');
+            suggestionsContainer.className = 'autocomplete-suggestions';
+            suggestionsContainer.style.display = 'none';
+            input.parentNode.insertBefore(suggestionsContainer, input.nextSibling);
+        }
+    }
+
+    addProjectLink(projectEdit) {
+        const linkTypeSelect = projectEdit.querySelector('.project-link-type');
+        const linkUrlInput = projectEdit.querySelector('.project-link-url');
+        const linkUrl = linkUrlInput.value.trim();
+        
+        if (!linkUrl) {
+            this.showNotification('Please enter a URL', 'error');
+            return;
+        }
+        
+        // Validate URL
+        try {
+            new URL(linkUrl);
+        } catch (e) {
+            this.showNotification('Please enter a valid URL (include http:// or https://)', 'error');
+            return;
+        }
+        
+        const linkType = linkTypeSelect.value;
+        const linkNameMap = {
+            'github': 'GitHub Repository',
+            'live': 'Live Demo',
+            'demo': 'Demo Video',
+            'other': 'Project Link'
+        };
+        const linkName = linkNameMap[linkType] || 'Project Link';
+        
+        const linksList = projectEdit.querySelector('.project-links-list');
+        
+        const linkItem = document.createElement('div');
+        linkItem.className = 'project-link-item';
+        linkItem.innerHTML = `
+            <span><strong>${linkName}:</strong> ${linkUrl}</span>
+            <button type="button" class="btn-remove-link" style="display: ${this.isEditMode ? 'inline-block' : 'none'};">
+                <i class="fas fa-times"></i>
+            </button>
+            <input type="hidden" class="project-link-name" value="${linkName}">
+            <input type="hidden" class="project-link-url" value="${linkUrl}">
+        `;
+        
+        linksList.appendChild(linkItem);
+        
+        // Clear input
+        linkUrlInput.value = '';
+        
+        // Add remove event
+        linkItem.querySelector('.btn-remove-link').addEventListener('click', () => {
+            linkItem.remove();
+        });
+        
+        this.showNotification('Link added successfully', 'success');
     }
 
     initEventListeners() {
@@ -683,15 +1808,74 @@ class ProfileManager {
         if (this.addSkillBtn) {
             this.addSkillBtn.addEventListener('click', this.addSkill.bind(this));
         }
+        
+        // Initialize remove buttons for existing items
+        this.initRemoveButtons();
+    }
+
+    initRemoveButtons() {
+        // Add event listeners to all remove buttons
+        document.querySelectorAll('.btn-remove-language').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.language-item').remove();
+            });
+        });
+        
+        document.querySelectorAll('.btn-remove-education').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.education-item').remove();
+            });
+        });
+        
+        document.querySelectorAll('.btn-remove-experience').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.experience-item').remove();
+            });
+        });
+        
+        document.querySelectorAll('.btn-remove-certification').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.certification-item').remove();
+            });
+        });
+        
+        document.querySelectorAll('.btn-remove-project').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.project-item').remove();
+            });
+        });
+        
+        document.querySelectorAll('.btn-remove-achievement').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.achievement-item').remove();
+            });
+        });
+        
+        document.querySelectorAll('.btn-remove-skill').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.skill-item').remove();
+            });
+        });
+        
+        // Skill tags remove buttons
+        document.querySelectorAll('.remove-skill').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const skillTag = e.target.closest('.skill-tag');
+                const type = skillTag.closest('#offeredSkillsTags') ? 'offered' : 'requested';
+                const skill = skillTag.dataset.skill;
+                this.removeSkill(type, skill);
+            });
+        });
     }
 
     toggleEditMode() {
         this.isEditMode = !this.isEditMode;
         
         // Toggle form fields
-        const formElements = document.querySelectorAll('input, select, textarea');
+        const formElements = document.querySelectorAll('input, select, textarea, button');
         formElements.forEach(el => {
-            if (el.type !== 'hidden' && el.name !== 'photo_url') {
+            if (el.type !== 'hidden' && el.name !== 'photo_url' && !el.classList.contains('btn-edit')) {
                 el.disabled = !this.isEditMode;
             }
         });
@@ -712,6 +1896,9 @@ class ProfileManager {
             
             // Show remove buttons and add buttons
             this.toggleEditControls(true);
+            
+            // Initialize enhanced UI for existing items
+            this.initEnhancedUI();
         } else {
             this.profileTitle.textContent = 'Profile';
             this.profileSubtitle.textContent = 'View and manage your profile information';
@@ -734,7 +1921,7 @@ class ProfileManager {
             btn.style.display = show ? 'inline-flex' : 'none';
         });
         
-        document.querySelectorAll('.btn-remove-language, .btn-remove-skill, .btn-remove-education, .btn-remove-experience, .btn-remove-certification, .btn-remove-project, .btn-remove-achievement').forEach(btn => {
+        document.querySelectorAll('.btn-remove-language, .btn-remove-skill, .btn-remove-education, .btn-remove-experience, .btn-remove-certification, .btn-remove-project, .btn-remove-achievement, .btn-remove-link, .remove-image').forEach(btn => {
             btn.style.display = show ? 'inline-block' : 'none';
         });
         
@@ -751,7 +1938,7 @@ class ProfileManager {
                 view.style.display = 'none';
             });
             document.querySelectorAll('.education-edit, .experience-edit, .certification-edit, .project-edit, .achievement-edit').forEach(edit => {
-                edit.style.display = 'block';
+                edit.style.display = 'grid';
             });
         } else {
             document.querySelectorAll('.education-view, .experience-view, .certification-view, .project-view, .achievement-view').forEach(view => {
@@ -804,7 +1991,7 @@ class ProfileManager {
         
         const suggestions = this.getSkillSuggestions(value);
         this.showSkillSuggestions(suggestionsContainer, suggestions, (skill) => {
-            this.addSkill(type, skill);
+            this.addSkillTag(type, skill);
             e.target.value = '';
             this.hideSuggestions(suggestionsContainer);
         });
@@ -815,7 +2002,7 @@ class ProfileManager {
             e.preventDefault();
             const value = e.target.value.trim();
             if (value && skillsData.includes(value)) {
-                this.addSkill(type, value);
+                this.addSkillTag(type, value);
                 e.target.value = '';
                 this.hideSuggestions(type === 'offered' ? this.offeredSkillSuggestions : this.requestedSkillSuggestions);
             }
@@ -887,7 +2074,7 @@ class ProfileManager {
         this.updateLocationDisplay();
     }
 
-    addSkill(type, skill) {
+    addSkillTag(type, skill) {
         const tagsContainer = type === 'offered' ? this.offeredSkillsTags : this.requestedSkillsTags;
         const hiddenInput = type === 'offered' ? this.offeredSkillHidden : this.requestedSkillHidden;
         
@@ -980,6 +2167,12 @@ class ProfileManager {
             el.disabled = !this.isEditMode;
         });
         
+        // Populate dropdowns
+        this.populateEducationDropdowns(item.querySelector('.education-edit'), {});
+        
+        // Initialize enhanced UI for this item
+        this.initEnhancedUIForItem(item.querySelector('.education-edit'));
+        
         // Show remove button if in edit mode
         const removeBtn = item.querySelector('.btn-remove-education');
         if (removeBtn) {
@@ -1002,6 +2195,12 @@ class ProfileManager {
         item.querySelectorAll('input, textarea, select, button').forEach(el => {
             el.disabled = !this.isEditMode;
         });
+        
+        // Populate dropdowns
+        this.populateExperienceDropdowns(item.querySelector('.experience-edit'), {});
+        
+        // Initialize enhanced UI for this item
+        this.initEnhancedUIForItem(item.querySelector('.experience-edit'));
         
         // Show remove button if in edit mode
         const removeBtn = item.querySelector('.btn-remove-experience');
@@ -1057,6 +2256,25 @@ class ProfileManager {
             el.disabled = !this.isEditMode;
         });
         
+        // Initialize enhanced UI for this item
+        this.initEnhancedUIForItem(item.querySelector('.project-edit'));
+        
+        // Add event listener for project links
+        const addLinkBtn = item.querySelector('.btn-add-project-link');
+        if (addLinkBtn) {
+            addLinkBtn.addEventListener('click', () => {
+                this.addProjectLink(item.querySelector('.project-edit'));
+            });
+        }
+        
+        // Add event listener for project image upload
+        const uploadBtn = item.querySelector('.btn-upload-project-images');
+        if (uploadBtn) {
+            uploadBtn.addEventListener('click', () => {
+                this.openProjectCloudinaryWidget(item);
+            });
+        }
+        
         // Show remove button if in edit mode
         const removeBtn = item.querySelector('.btn-remove-project');
         if (removeBtn) {
@@ -1092,7 +2310,19 @@ class ProfileManager {
 
     addSkill() {
         const container = document.getElementById('skillsContainer');
-        const template = document.querySelector('#skillTemplate') || this.createSkillTemplate();
+        const template = document.createElement('template');
+        template.innerHTML = `
+            <div class="skill-item">
+                <div class="input-with-icon">
+                    <i class="fas fa-star"></i>
+                    <input type="text" class="skill-name" placeholder="Skill name" disabled>
+                    <button type="button" class="btn-remove-skill" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
         const item = template.content.cloneNode(true).querySelector('.skill-item');
         item.dataset.index = container.children.length;
         
@@ -1111,21 +2341,6 @@ class ProfileManager {
                 item.remove();
             });
         }
-    }
-
-    createSkillTemplate() {
-        const template = document.createElement('template');
-        template.id = 'skillTemplate';
-        template.innerHTML = `
-            <div class="skill-item">
-                <input type="text" class="skill-name" placeholder="Skill name" disabled>
-                <button type="button" class="btn-remove-skill" style="display: none;">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        document.body.appendChild(template);
-        return template;
     }
 
     updateLocationDisplay() {
@@ -1152,6 +2367,13 @@ class ProfileManager {
         if (!this.requestedSkillInput.contains(e.target) && !this.requestedSkillSuggestions.contains(e.target)) {
             this.hideSuggestions(this.requestedSkillSuggestions);
         }
+        
+        // Hide all autocomplete suggestions
+        document.querySelectorAll('.autocomplete-suggestions').forEach(container => {
+            if (!container.previousElementSibling.contains(e.target) && !container.contains(e.target)) {
+                container.style.display = 'none';
+            }
+        });
     }
 
     async autoDetectLocation() {
@@ -1372,6 +2594,43 @@ class ProfileManager {
         });
     }
 
+    initProjectCloudinaryWidget() {
+        this.projectCloudinaryWidget = cloudinary.createUploadWidget({
+            cloudName: 'dtarhtz5w',
+            uploadPreset: 'skillswap_assets',
+            folder: 'Media Library/Assets/Project_Images',
+            sources: ['local', 'url', 'camera'],
+            multiple: true,
+            clientAllowedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+            maxFileSize: 5000000,
+            showAdvancedOptions: true,
+            showPoweredBy: false,
+            styles: {
+                palette: {
+                    window: "#FFFFFF",
+                    sourceBg: "#F4F4F5",
+                    windowBorder: "#90a0b3",
+                    tabIcon: "#4361ee",
+                    inactiveTabIcon: "#69778A",
+                    menuIcons: "#4361ee",
+                    link: "#4361ee",
+                    action: "#4361ee",
+                    inProgress: "#4361ee",
+                    complete: "#4cc9f0",
+                    error: "#f72585",
+                    textDark: "#212529",
+                    textLight: "#FFFFFF"
+                }
+            }
+        }, (error, result) => {
+            if (!error && result && result.event === "success") {
+                this.handleProjectImageUpload(result.info);
+            } else if (error) {
+                this.showNotification('Error uploading image: ' + error.message, 'error');
+            }
+        });
+    }
+
     openCloudinaryWidget() {
         if (this.cloudinaryWidget) {
             this.cloudinaryWidget.open();
@@ -1385,14 +2644,24 @@ class ProfileManager {
         }
     }
 
+    openProjectCloudinaryWidget(projectItem) {
+        this.currentProjectItem = projectItem;
+        if (this.projectCloudinaryWidget) {
+            this.projectCloudinaryWidget.open();
+        }
+    }
+
     handleImageUpload(result) {
         this.uploadProgress.style.display = 'flex';
         this.progressFill.style.width = '100%';
         this.progressText.textContent = '100%';
         
         // Update profile image and URL field
-        this.profileImage.src = result.secure_url;
-        this.photoUrlInput.value = result.secure_url;
+        const profileImage = document.getElementById('profileImage');
+        const photoUrlInput = document.getElementById('photoUrlInput');
+        
+        profileImage.src = result.secure_url;
+        photoUrlInput.value = result.secure_url;
         
         setTimeout(() => {
             this.uploadProgress.style.display = 'none';
@@ -1415,7 +2684,7 @@ class ProfileManager {
             viewLink.href = result.secure_url;
             viewLink.target = '_blank';
             viewLink.className = 'current-certificate';
-            viewLink.textContent = 'View Certificate';
+            viewLink.innerHTML = '<i class="fas fa-eye"></i> View Current Certificate';
             
             // Remove existing link if any
             const existingLink = uploadSection.querySelector('.current-certificate');
@@ -1430,10 +2699,34 @@ class ProfileManager {
         }
     }
 
+    handleProjectImageUpload(result) {
+        if (this.currentProjectItem) {
+            const editView = this.currentProjectItem.querySelector('.project-edit');
+            const imagesList = editView.querySelector('.project-images-list');
+            
+            const imageItem = document.createElement('div');
+            imageItem.className = 'project-image-preview';
+            imageItem.innerHTML = `
+                <img src="${result.secure_url}" alt="Project Image">
+                <button type="button" class="remove-image" style="display: ${this.isEditMode ? 'block' : 'none'};">×</button>
+                <input type="hidden" class="project-image-url" value="${result.secure_url}">
+            `;
+            
+            imagesList.appendChild(imageItem);
+            
+            // Add remove event
+            imageItem.querySelector('.remove-image').addEventListener('click', () => {
+                imageItem.remove();
+            });
+            
+            this.showNotification('Project image uploaded successfully!', 'success');
+            this.currentProjectItem = null;
+        }
+    }
+
     async handleFormSubmit(e) {
         e.preventDefault();
         
-        const formData = new FormData(e.target);
         const saveBtn = e.target.querySelector('.btn-save');
         const originalText = saveBtn.innerHTML;
         
@@ -1441,6 +2734,8 @@ class ProfileManager {
         saveBtn.disabled = true;
         
         try {
+            const formData = new FormData(e.target);
+            
             // Convert form data to object
             const data = {
                 name: formData.get('name'),
@@ -1470,7 +2765,7 @@ class ProfileManager {
             
             // Collect languages
             const languages = [];
-            document.querySelectorAll('.language-item').forEach((item, index) => {
+            document.querySelectorAll('.language-item').forEach((item) => {
                 const language = item.querySelector('.language-name').value.trim();
                 const proficiency = item.querySelector('.language-proficiency').value;
                 if (language) {
@@ -1481,18 +2776,18 @@ class ProfileManager {
             
             // Collect education
             const education = [];
-            document.querySelectorAll('.education-item').forEach((item, index) => {
+            document.querySelectorAll('.education-item').forEach((item) => {
                 const edu = {
-                    degree_type: item.querySelector('.edu-degree').value.trim(),
-                    field_of_study: item.querySelector('.edu-field').value.trim(),
-                    institution_name: item.querySelector('.edu-institution').value.trim(),
-                    institution_type: item.querySelector('.edu-institution-type').value.trim(),
-                    location: item.querySelector('.edu-location').value.trim(),
-                    start_date: item.querySelector('.edu-start-date').value,
-                    end_date: item.querySelector('.edu-end-date').value,
-                    current: item.querySelector('.edu-current').checked,
-                    grade: item.querySelector('.edu-grade').value.trim(),
-                    description: item.querySelector('.edu-description').value.trim()
+                    degree_type: item.querySelector('.edu-degree')?.value.trim() || '',
+                    field_of_study: item.querySelector('.edu-field')?.value.trim() || '',
+                    institution_name: item.querySelector('.edu-institution')?.value.trim() || '',
+                    institution_type: item.querySelector('.edu-institution-type')?.value.trim() || '',
+                    location: item.querySelector('.edu-location')?.value.trim() || '',
+                    start_date: item.querySelector('.edu-start-date')?.value || '',
+                    end_date: item.querySelector('.edu-end-date')?.value || '',
+                    current: item.querySelector('.edu-current')?.checked || false,
+                    grade: item.querySelector('.edu-grade')?.value.trim() || '',
+                    description: item.querySelector('.edu-description')?.value.trim() || ''
                 };
                 
                 // Only add if required fields are filled
@@ -1504,18 +2799,18 @@ class ProfileManager {
             
             // Collect experience
             const experience = [];
-            document.querySelectorAll('.experience-item').forEach((item, index) => {
+            document.querySelectorAll('.experience-item').forEach((item) => {
                 const exp = {
-                    job_title: item.querySelector('.exp-title').value.trim(),
-                    company: item.querySelector('.exp-company').value.trim(),
-                    employment_type: item.querySelector('.exp-type').value.trim(),
-                    location: item.querySelector('.exp-location').value.trim(),
-                    remote: item.querySelector('.exp-remote').checked,
-                    start_date: item.querySelector('.exp-start-date').value,
-                    end_date: item.querySelector('.exp-end-date').value,
-                    current: item.querySelector('.exp-current').checked,
-                    responsibilities: item.querySelector('.exp-responsibilities').value.trim(),
-                    skills_used: item.querySelector('.exp-skills').value.split(',').map(s => s.trim()).filter(s => s)
+                    job_title: item.querySelector('.exp-title')?.value.trim() || '',
+                    company: item.querySelector('.exp-company')?.value.trim() || '',
+                    employment_type: item.querySelector('.exp-type')?.value.trim() || '',
+                    location: item.querySelector('.exp-location')?.value.trim() || '',
+                    remote: item.querySelector('.exp-remote')?.checked || false,
+                    start_date: item.querySelector('.exp-start-date')?.value || '',
+                    end_date: item.querySelector('.exp-end-date')?.value || '',
+                    current: item.querySelector('.exp-current')?.checked || false,
+                    responsibilities: item.querySelector('.exp-responsibilities')?.value.trim() || '',
+                    skills_used: item.querySelector('.exp-skills')?.value.split(',').map(s => s.trim()).filter(s => s) || []
                 };
                 
                 // Only add if required fields are filled
@@ -1527,16 +2822,16 @@ class ProfileManager {
             
             // Collect certifications
             const certifications = [];
-            document.querySelectorAll('.certification-item').forEach((item, index) => {
+            document.querySelectorAll('.certification-item').forEach((item) => {
                 const cert = {
-                    name: item.querySelector('.cert-name').value.trim(),
-                    organization: item.querySelector('.cert-organization').value.trim(),
-                    issue_date: item.querySelector('.cert-issue-date').value,
-                    expiry_date: item.querySelector('.cert-expiry-date').value,
-                    no_expiry: item.querySelector('.cert-no-expiry').checked,
-                    credential_id: item.querySelector('.cert-credential-id').value.trim(),
-                    certificate_url: item.querySelector('.cert-certificate-url').value,
-                    skills: item.querySelector('.cert-skills').value.split(',').map(s => s.trim()).filter(s => s)
+                    name: item.querySelector('.cert-name')?.value.trim() || '',
+                    organization: item.querySelector('.cert-organization')?.value.trim() || '',
+                    issue_date: item.querySelector('.cert-issue-date')?.value || '',
+                    expiry_date: item.querySelector('.cert-expiry-date')?.value || '',
+                    no_expiry: item.querySelector('.cert-no-expiry')?.checked || false,
+                    credential_id: item.querySelector('.cert-credential-id')?.value.trim() || '',
+                    certificate_url: item.querySelector('.cert-certificate-url')?.value || '',
+                    skills: item.querySelector('.cert-skills')?.value.split(',').map(s => s.trim()).filter(s => s) || []
                 };
                 
                 // Only add if required fields are filled
@@ -1546,16 +2841,40 @@ class ProfileManager {
             });
             data.certifications = certifications;
             
-            // Collect projects
+            // Collect projects with enhanced fields
             const projects = [];
-            document.querySelectorAll('.project-item').forEach((item, index) => {
+            document.querySelectorAll('.project-item').forEach((item) => {
                 const project = {
-                    title: item.querySelector('.project-title').value.trim(),
-                    type: item.querySelector('.project-type').value.trim(),
-                    description: item.querySelector('.project-description').value.trim(),
-                    technologies: item.querySelector('.project-technologies').value.split(',').map(s => s.trim()).filter(s => s),
-                    role: item.querySelector('.project-role').value.trim()
+                    title: item.querySelector('.project-title')?.value.trim() || '',
+                    type: item.querySelector('.project-type')?.value.trim() || '',
+                    description: item.querySelector('.project-description')?.value.trim() || '',
+                    technologies: item.querySelector('.project-technologies')?.value.split(',').map(s => s.trim()).filter(s => s) || [],
+                    role: item.querySelector('.project-role')?.value.trim() || ''
                 };
+                
+                // Collect project links
+                const links = [];
+                item.querySelectorAll('.project-links-list .project-link-item').forEach(linkItem => {
+                    const nameInput = linkItem.querySelector('.project-link-name');
+                    const urlInput = linkItem.querySelector('.project-link-url');
+                    if (nameInput && urlInput) {
+                        const name = nameInput.value.trim();
+                        const url = urlInput.value.trim();
+                        if (name && url) {
+                            links.push({ name, url });
+                        }
+                    }
+                });
+                project.links = links;
+                
+                // Collect project images
+                const images = [];
+                item.querySelectorAll('.project-image-url').forEach(input => {
+                    if (input.value) {
+                        images.push(input.value);
+                    }
+                });
+                project.images = images;
                 
                 // Only add if required fields are filled
                 if (project.title || project.description) {
@@ -1566,12 +2885,12 @@ class ProfileManager {
             
             // Collect achievements
             const achievements = [];
-            document.querySelectorAll('.achievement-item').forEach((item, index) => {
+            document.querySelectorAll('.achievement-item').forEach((item) => {
                 const achievement = {
-                    title: item.querySelector('.achievement-title').value.trim(),
-                    org: item.querySelector('.achievement-org').value.trim(),
-                    date: item.querySelector('.achievement-date').value,
-                    description: item.querySelector('.achievement-description').value.trim()
+                    title: item.querySelector('.achievement-title')?.value.trim() || '',
+                    org: item.querySelector('.achievement-org')?.value.trim() || '',
+                    date: item.querySelector('.achievement-date')?.value || '',
+                    description: item.querySelector('.achievement-description')?.value.trim() || ''
                 };
                 
                 // Only add if required fields are filled
@@ -1583,9 +2902,9 @@ class ProfileManager {
             
             // Collect additional skills
             const skills = [];
-            document.querySelectorAll('.skill-item').forEach((item, index) => {
+            document.querySelectorAll('.skill-item').forEach((item) => {
                 const skill = {
-                    skill_name: item.querySelector('.skill-name').value.trim()
+                    skill_name: item.querySelector('.skill-name')?.value.trim() || ''
                 };
                 
                 if (skill.skill_name) {
@@ -1599,6 +2918,9 @@ class ProfileManager {
             
             // Update local user data
             this.userData = { ...this.userData, ...data };
+            
+            // Update view mode with new data
+            this.populateFormData();
             
             // Show success message and exit edit mode
             this.showNotification('Profile updated successfully!', 'success');
@@ -1626,23 +2948,6 @@ class ProfileManager {
             <span>${message}</span>
         `;
         
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
-            color: white;
-            padding: 16px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            z-index: 10000;
-            max-width: 400px;
-            animation: slideInRight 0.3s ease;
-        `;
-        
         document.body.appendChild(notification);
         
         setTimeout(() => {
@@ -1656,7 +2961,7 @@ class ProfileManager {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new ProfileManager();
+    window.profileManager = new ProfileManager();
     
     // Add CSS animations
     const style = document.createElement('style');

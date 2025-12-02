@@ -703,3 +703,104 @@ def enhanced_search():
             'status': 'error',
             'error': str(e)
         }), 500
+
+
+# new 
+@main.route('/api/indian-colleges', methods=['GET'])
+def get_indian_colleges():
+    """API endpoint to fetch Indian colleges"""
+    try:
+        query = request.args.get('q', '').strip().lower()
+        
+        # Sample list of Indian colleges (you can expand this)
+        indian_colleges = [
+            "Indian Institute of Technology Bombay",
+            "Indian Institute of Technology Delhi",
+            "Indian Institute of Technology Madras",
+            "Indian Institute of Technology Kanpur",
+            "Indian Institute of Technology Kharagpur",
+            "Indian Institute of Technology Roorkee",
+            "University of Delhi",
+            "University of Mumbai",
+            "University of Calcutta",
+            "University of Madras",
+            "Anna University",
+            "Jawaharlal Nehru University",
+            "Banaras Hindu University",
+            "University of Hyderabad",
+            "University of Pune",
+            "National Institute of Technology Trichy",
+            "Birla Institute of Technology and Science",
+            "Indian Institute of Science",
+            "All India Institute of Medical Sciences",
+            "Indian Statistical Institute",
+            "Indian Institute of Management Ahmedabad",
+            "Indian Institute of Management Bangalore",
+            "Indian Institute of Management Calcutta",
+            "Indian Institute of Management Lucknow",
+            "Indian Institute of Management Kozhikode",
+            "Indian Institute of Management Indore",
+            "Delhi Technological University",
+            "Netaji Subhas University of Technology",
+            "Jadavpur University",
+            "University of Rajasthan",
+            "University of Mysore",
+            "University of Kerala",
+            "University of Jammu",
+            "University of Kashmir",
+            "Guru Nanak Dev University",
+            "Panjab University",
+            "University of Calcutta",
+            "University of Madras",
+            "University of Mumbai",
+            "University of Delhi"
+        ]
+        
+        if query:
+            filtered_colleges = [college for college in indian_colleges 
+                               if query in college.lower()]
+        else:
+            filtered_colleges = indian_colleges[:20]
+        
+        return jsonify({
+            'status': 'success',
+            'colleges': filtered_colleges[:20]  # Limit to 20 results
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+# NEW ROUTE: Save profile with enhanced project links
+@main.route('/save-profile', methods=['POST'])
+def save_profile():
+    """Save profile data including enhanced project links"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+        
+        data = request.get_json()
+        
+        # Process project links if they exist
+        if 'projects' in data:
+            for project in data['projects']:
+                # Ensure links are properly formatted
+                if 'links' in project:
+                    # Filter out empty links
+                    project['links'] = [link for link in project['links'] 
+                                      if link.get('name') and link.get('url')]
+        
+        # Update in Firestore
+        db.collection('users').document(user_id).set(data, merge=True)
+        
+        return jsonify({
+            'status': 'success', 
+            'message': 'Profile updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error saving profile: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500

@@ -1,0 +1,24 @@
+{
+  "specializations": [
+    "Mechanical Engineering", "Civil Engineering", "Electrical Engineering", 
+    "Computer Science Engineering", "Information Technology", "Artificial Intelligence & Machine Learning",
+    "Data Science", "Cybersecurity", "Cloud Computing", "Blockchain Technology",
+    "Electronics & Communication", "Chemical Engineering", "Biotechnology Engineering",
+    "Aeronautical Engineering", "Automobile Engineering", "Robotics & Automation",
+    "General Medicine", "Surgery", "Pediatrics", "Cardiology", "Dermatology",
+    "Pharmacy", "Physiotherapy", "Nursing", "Biotechnology", "Microbiology",
+    "Human Resource Management", "Finance", "Marketing", "Business Analytics",
+    "Supply Chain Management", "Digital Marketing", "Banking & Insurance",
+    "Psychology", "Sociology", "History", "Political Science", "Journalism & Mass Communication",
+    "English Literature", "Public Administration", "Fine Arts", "Social Work",
+    "Criminal Law", "Corporate Law", "Cyber Law", "Constitutional Law",
+    "Graphic Design", "UI/UX Design", "Fashion Design", "Product Design",
+    "Animation", "VFX", "Game Design", "Film Making",
+    "Mathematics", "Statistics", "Physics", "Chemistry", "Environmental Science",
+    "Web Development", "Mobile App Development", "Software Development",
+    "Data Analytics", "DevOps Engineering", "Database Management",
+    "Hotel Management", "Culinary Arts", "Tourism Management",
+    "Agriculture", "Horticulture", "Veterinary Science",
+    "Electrician", "Fitter", "Welder", "Automobile Technician"
+  ]
+}

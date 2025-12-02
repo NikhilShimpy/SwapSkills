@@ -1,0 +1,51 @@
+{
+  "degree_types": {
+    "undergraduate": [
+      {"value": "BA", "label": "BA – Bachelor of Arts"},
+      {"value": "B.Sc", "label": "B.Sc – Bachelor of Science"},
+      {"value": "B.Com", "label": "B.Com – Bachelor of Commerce"},
+      {"value": "BBA", "label": "BBA – Bachelor of Business Administration"},
+      {"value": "B.Tech", "label": "B.Tech – Bachelor of Technology"},
+      {"value": "BE", "label": "B.E – Bachelor of Engineering"},
+      {"value": "BCA", "label": "BCA – Bachelor of Computer Applications"},
+      {"value": "B.Des", "label": "B.Des – Bachelor of Design"},
+      {"value": "B.Arch", "label": "B.Arch – Bachelor of Architecture"},
+      {"value": "B.Ed", "label": "B.Ed – Bachelor of Education"},
+      {"value": "B.Pharm", "label": "B.Pharm – Bachelor of Pharmacy"},
+      {"value": "BDS", "label": "BDS – Dental Surgery"},
+      {"value": "BAMS", "label": "BAMS – Ayurveda"},
+      {"value": "BHMS", "label": "BHMS – Homeopathy"},
+      {"value": "LLB", "label": "LLB – Bachelor of Law"}
+    ],
+    "postgraduate": [
+      {"value": "MA", "label": "MA – Master of Arts"},
+      {"value": "M.Sc", "label": "M.Sc – Master of Science"},
+      {"value": "M.Com", "label": "M.Com – Master of Commerce"},
+      {"value": "MBA", "label": "MBA – Master of Business Administration"},
+      {"value": "PGDM", "label": "PGDM – Post Graduate Diploma"},
+      {"value": "M.Tech", "label": "M.Tech – Master of Technology"},
+      {"value": "ME", "label": "M.E – Master of Engineering"},
+      {"value": "MCA", "label": "MCA – Master of Computer Applications"},
+      {"value": "M.Des", "label": "M.Des – Master of Design"},
+      {"value": "M.Arch", "label": "M.Arch – Master of Architecture"},
+      {"value": "M.Ed", "label": "M.Ed – Master of Education"},
+      {"value": "M.Pharm", "label": "M.Pharm – Master of Pharmacy"},
+      {"value": "LLM", "label": "LLM – Master of Law"}
+    ],
+    "doctorate": [
+      {"value": "PhD", "label": "PhD – Doctor of Philosophy"},
+      {"value": "DSc", "label": "DSc – Doctor of Science"},
+      {"value": "DLitt", "label": "DLitt – Doctor of Literature"}
+    ],
+    "medical": [
+      {"value": "MBBS", "label": "MBBS"},
+      {"value": "MD", "label": "MD – Doctor of Medicine"},
+      {"value": "MS", "label": "MS – Master of Surgery"}
+    ],
+    "diploma": [
+      {"value": "Diploma", "label": "Diploma (1-3 years)"},
+      {"value": "Advanced_Diploma", "label": "Advanced Diploma"},
+      {"value": "PG_Diploma", "label": "PG Diploma"}
+    ]
+  }
+}

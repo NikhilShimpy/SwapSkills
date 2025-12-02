@@ -1,0 +1,6 @@
+{
+  "employment_types": [
+    "Full-time", "Part-time", "Contract", "Internship", "Freelance", 
+    "Remote", "Self-employed", "Temporary", "Volunteer", "Apprenticeship"
+  ]
+}
