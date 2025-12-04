@@ -1,188 +1,1132 @@
-<!-- seeRequest.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Swap Requests</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swap Requests | SkillSwap</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/seeRequest.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body {
-      background-color: #111;
-      font-family: 'Inter', sans-serif;
-      color: white;
-      margin: 0;
-      padding-top: 100px;
-    }
-
-    header {
-      z-index: 1000;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px 40px;
-      background-color: #000;
+    /* Enhanced Loading */
+    .loading-overlay {
       position: fixed;
-      width: 95%;
       top: 0;
-    }
-
-    .header-left {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #4DB8FF;
-    }
-
-    .header-right a {
-      color: white;
-      text-decoration: none;
-      margin-left: 20px;
-    }
-
-    .header-right img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: 2px solid white;
-    }
-
-    .toggle-buttons {
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex;
+      align-items: center;
       justify-content: center;
-      margin: 20px;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
     }
-
-    .toggle-buttons button {
-      background-color: #333;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      color: white;
-      cursor: pointer;
-      margin: 0 10px;
-      border-radius: 6px;
+    
+    .loading-content {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+      animation: slideUp 0.6s ease;
     }
-
-    .toggle-buttons .active {
-      background-color: #4DB8FF;
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-
-    .filter-bar {
-      padding: 20px 40px;
-    }
-
-    .card {
-      max-width: 900px;
-      margin: 20px auto;
-      padding: 20px;
-      background-color: #1a1a1a;
-      border: 2px solid #888;
-      border-radius: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .left-section {
-      display: flex;
-      align-items: center;
-    }
-
-    .profile-photo {
-      width: 100px;
-      height: 100px;
+    
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(99, 102, 241, 0.1);
+      border-top-color: #6366f1;
       border-radius: 50%;
-      margin-right: 20px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
     }
-
-    .info h3 { margin: 0; }
-
-    .status-section {
-      text-align: right;
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
-
-    .status-label {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 8px;
+    
+    /* Status Pulse Animation */
+    .status-pending .status-indicator {
+      animation: pulse 2s infinite;
     }
-
-    .status-accepted { color: #4CAF50; }
-    .status-rejected { color: #F44336; }
-    .status-pending { color: #b0c4de; }
-
-    .action-buttons {
-      margin-top: 10px;
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
     }
-
-    .accept-btn, .reject-btn {
+    
+    /* Card Hover Effects */
+    .request-card {
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .request-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    /* User Profile Link */
+    .user-profile-link {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .user-profile-link:hover {
+      opacity: 0.8;
+    }
+    
+    /* Enhanced Status Colors */
+    .status-indicator {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-pending {
+      background: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+    }
+    
+    .status-accepted {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+    }
+    
+    .status-rejected {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+    
+    .status-completed {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+    
+    .status-cancelled {
+      background: rgba(107, 114, 128, 0.1);
+      color: #6b7280;
+    }
+    
+    /* Enhanced Skill Badges */
+    .skill-badge {
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    .skill-badge.primary {
+      background: rgba(99, 102, 241, 0.1);
+      color: #6366f1;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+    
+    .skill-badge.secondary {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    
+    /* Action Buttons */
+    .btn-action {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 100px;
+      justify-content: center;
+    }
+    
+    .btn-action:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .btn-action.accept {
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: white;
+    }
+    
+    .btn-action.reject {
+      background: linear-gradient(135deg, #ef4444, #f87171);
+      color: white;
+    }
+    
+    .btn-action.cancel {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .btn-action.complete {
+      background: linear-gradient(135deg, #3b82f6, #60a5fa);
+      color: white;
+    }
+    
+    .btn-action.details {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .btn-action.schedule {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: white;
+    }
+    
+    .btn-action.message {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+    }
+    
+    .btn-action.rate {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: white;
+    }
+    
+    /* Toast Notifications */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transform: translateX(120%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 10001;
+      border-left: 4px solid;
+      max-width: 350px;
+    }
+    
+    .toast.show {
+      transform: translateX(0);
+    }
+    
+    .toast-success {
+      border-left-color: #10b981;
+    }
+    
+    .toast-error {
+      border-left-color: #ef4444;
+    }
+    
+    .toast-warning {
+      border-left-color: #f59e0b;
+    }
+    
+    .toast-info {
+      border-left-color: #3b82f6;
+    }
+    
+    .toast-close {
       background: none;
       border: none;
-      font-size: 16px;
-      font-weight: bold;
+      color: #9ca3af;
       cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s;
     }
-
-    .accept-btn { color: #4CAF50; margin-right: 12px; }
-    .reject-btn { color: #F44336; }
+    
+    .toast-close:hover {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
   </style>
 </head>
 <body>
-<header>
-  <div class="header-left">Skill Swap Platform</div>
-  <div class="header-right">
-    <a href="{{ url_for('main.home') }}">Home</a>
-    <a href="{{ url_for('main.profile') }}">
-      <img src="{{ current_user_data.photo_url or '/static/default-profile.png' }}" alt="Profile">
-    </a>
-  </div>
-</header>
-
-
-<!-- 🔀 Toggle Tabs -->
-<div class="toggle-buttons">
-  <form method="GET" style="display:inline;">
-    <input type="hidden" name="view" value="invitations">
-    <button type="submit" class="{% if view_type == 'invitations' %}active{% endif %}">Invitations</button>
-  </form>
-  <form method="GET" style="display:inline;">
-    <input type="hidden" name="view" value="my_requests">
-    <button type="submit" class="{% if view_type == 'my_requests' %}active{% endif %}">My Requests</button>
-  </form>
-</div>
-
-
-<!-- ✅ Cards Grid -->
-{% for request in swap_requests %}
-<div class="card">
-  <div class="left-section">
-    <img src="{{ request.fromUserPhoto or '/static/default-profile.png' }}" class="profile-photo" />
-    <div class="info">
-      <h3>{{ request.fromUserName or 'Anonymous' }}</h3>
-      <p style="color: green;">Skills Offered ⇒ <b>{{ request.offeredSkill }}</b></p>
-      <p style="color: #3399ff;">Skill Wanted ⇒ <b>{{ request.requestedSkill }}</b></p>
-      <p>Rating: {{ request.fromUserRating }}/5</p>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <h3>Loading Your Swap Requests</h3>
+      <p>Please wait while we fetch your data...</p>
     </div>
   </div>
-  <div class="status-section">
-    <div class="status-label">
-      Status:
-      <span class="{% if request.status == 'Accepted' %}status-accepted{% elif request.status == 'Rejected' %}status-rejected{% else %}status-pending{% endif %}">
-        {{ request.status }}
-      </span>
-    </div>
 
-    {% if request.status.lower() == 'pending' and view_type == 'invitations' %}
-    <div class="action-buttons">
-      <form method="POST" action="{{ url_for('main.update_status', swap_id=request.id) }}" style="display:inline;">
-        <button type="submit" name="action" value="Accepted" class="accept-btn">Accept</button>
-      </form>
-      <form method="POST" action="{{ url_for('main.update_status', swap_id=request.id) }}" style="display:inline;">
-        <button type="submit" name="action" value="Rejected" class="reject-btn">Reject</button>
-      </form>
-    </div>
-    {% endif %}
+  <!-- Main Container -->
+  <div class="requests-container">
+    <!-- Header -->
+    <header class="requests-header">
+      <div class="header-content">
+        <a href="{{ url_for('main.app') }}" class="back-btn">
+          <i class="fas fa-arrow-left"></i>
+          Back to Home
+        </a>
+        <div class="header-title">
+          <h1>Swap Requests</h1>
+          <p>Manage your skill exchange requests and invitations</p>
+        </div>
+        <div class="user-info-header">
+          <img src="{{ current_user_data.get('photo_url', '/static/default-profile.png') }}" 
+               alt="Profile" class="user-avatar-header">
+          <span>{{ current_user_data.get('name', 'User') }}</span>
+        </div>
+      </div>
+      
+      <!-- Stats Dashboard -->
+      <div class="header-stats">
+        <div class="stat-card" onclick="filterByStatus('all')">
+          <i class="fas fa-exchange-alt"></i>
+          <div>
+            <span class="stat-number">{{ stats.total if stats else 0 }}</span>
+            <span class="stat-label">Total Requests</span>
+          </div>
+        </div>
+        <div class="stat-card" onclick="filterByStatus('pending')">
+          <i class="fas fa-clock"></i>
+          <div>
+            <span class="stat-number">{{ stats.pending if stats else 0 }}</span>
+            <span class="stat-label">Pending</span>
+          </div>
+        </div>
+        <div class="stat-card" onclick="filterByStatus('accepted')">
+          <i class="fas fa-handshake"></i>
+          <div>
+            <span class="stat-number">{{ stats.accepted if stats else 0 }}</span>
+            <span class="stat-label">Accepted</span>
+          </div>
+        </div>
+        <div class="stat-card" onclick="filterByStatus('completed')">
+          <i class="fas fa-trophy"></i>
+          <div>
+            <span class="stat-number">{{ stats.completed if stats else 0 }}</span>
+            <span class="stat-label">Completed</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="requests-main">
+      <!-- View Toggle -->
+      <div class="view-toggle-container">
+        <div class="view-toggle">
+          <a href="{{ url_for('main.see_request', view='invitations') }}" 
+             class="view-tab {% if view_type == 'invitations' %}active{% endif %}" 
+             data-view="invitations">
+            <i class="fas fa-inbox"></i>
+            <span>Invitations Received</span>
+            {% if stats and stats.pending > 0 %}
+            <span class="notification-badge">{{ stats.pending }}</span>
+            {% endif %}
+          </a>
+          <a href="{{ url_for('main.see_request', view='my_requests') }}" 
+             class="view-tab {% if view_type == 'my_requests' %}active{% endif %}" 
+             data-view="my_requests">
+            <i class="fas fa-paper-plane"></i>
+            <span>My Sent Requests</span>
+          </a>
+        </div>
+        
+        <!-- Filter Controls -->
+        <div class="filter-controls">
+          <div class="filter-group">
+            <label for="statusFilter">
+              <i class="fas fa-filter"></i>
+              Filter by Status
+            </label>
+            <select id="statusFilter" class="filter-select">
+              <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Status</option>
+              <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+              <option value="accepted" {% if selected_status == 'accepted' %}selected{% endif %}>Accepted</option>
+              <option value="rejected" {% if selected_status == 'rejected' %}selected{% endif %}>Rejected</option>
+              <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+              <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+          </div>
+          
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Search by user or skill..." 
+                   value="{{ request.args.get('q', '') }}">
+            <button class="search-clear" id="clearSearch">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <button class="btn-refresh" onclick="refreshRequests()" title="Refresh requests">
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Requests Grid -->
+      <div class="requests-grid" id="requestsGrid">
+        {% if swap_requests %}
+          {% for request in swap_requests %}
+          <div class="request-card status-{{ request.status|lower }}" 
+               data-user="{{ request.userName|lower }}"
+               data-skill="{{ request.offeredSkill|lower }} {{ request.requestedSkill|lower }}"
+               data-status="{{ request.status|lower }}">
+            
+            <!-- Card Header with User Info -->
+            <div class="card-header">
+              <div class="user-profile" onclick="viewUserProfile('{{ request.userId }}')">
+                <img src="{{ request.userPhoto if request.userPhoto else '/static/default-profile.png' }}" 
+                     alt="{{ request.userName }}" class="user-avatar"
+                     onerror="this.src='/static/default-profile.png'">
+                <div class="user-details">
+                  <h4 class="user-name">{{ request.userName }}</h4>
+                  <div class="request-meta">
+                    <span class="request-time" title="{{ request.createdAt_formatted }}">
+                      <i class="far fa-clock"></i>
+                      {{ request.createdAt_formatted if request.createdAt_formatted else 'Recently' }}
+                    </span>
+                    <span class="user-rating">
+                      <i class="fas fa-star"></i>
+                      {{ "%.1f"|format(request.rating) if request.rating else '4.5' }}/5.0
+                    </span>
+                    {% if request.city or request.state %}
+                    <span class="user-location">
+                      <i class="fas fa-map-marker-alt"></i>
+                      {{ request.city }}{% if request.state %}, {{ request.state }}{% endif %}
+                    </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="status-section">
+                <div class="status-indicator status-{{ request.status|lower }}">
+                  {% if request.status|lower == 'pending' %}
+                    <i class="fas fa-clock"></i>
+                  {% elif request.status|lower == 'accepted' %}
+                    <i class="fas fa-check-circle"></i>
+                  {% elif request.status|lower == 'rejected' %}
+                    <i class="fas fa-times-circle"></i>
+                  {% elif request.status|lower == 'completed' %}
+                    <i class="fas fa-trophy"></i>
+                  {% elif request.status|lower == 'cancelled' %}
+                    <i class="fas fa-ban"></i>
+                  {% else %}
+                    <i class="fas fa-circle"></i>
+                  {% endif %}
+                  <span>{{ request.status }}</span>
+                </div>
+                <div class="request-id">
+                  <i class="fas fa-hashtag"></i>
+                  <span>{{ request.swapId if request.swapId else request.id[:8] }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Swap Details -->
+            <div class="swap-details">
+              <div class="swap-flow">
+                <div class="swap-direction">
+                  <div class="direction-label">
+                    {% if view_type == 'invitations' %}
+                      They Offer
+                    {% else %}
+                      You Offer
+                    {% endif %}
+                  </div>
+                  <div class="skill-badge primary">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>{{ request.offeredSkill if request.offeredSkill else 'Skill not specified' }}</span>
+                  </div>
+                </div>
+                
+                <div class="swap-arrow">
+                  <i class="fas fa-exchange-alt"></i>
+                </div>
+                
+                <div class="swap-direction">
+                  <div class="direction-label">
+                    {% if view_type == 'invitations' %}
+                      You Receive
+                    {% else %}
+                      They Receive
+                    {% endif %}
+                  </div>
+                  <div class="skill-badge secondary">
+                    <i class="fas fa-arrow-down"></i>
+                    <span>{{ request.requestedSkill if request.requestedSkill else 'Skill not specified' }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {% if request.message %}
+              <div class="request-message">
+                <i class="fas fa-quote-left"></i>
+                <p>"{{ request.message|truncate(100) }}"</p>
+                {% if request.message|length > 100 %}
+                <button class="btn-view-more" onclick="showFullMessage('{{ request.id }}')">
+                  Read more
+                </button>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <!-- Card Actions -->
+            <div class="card-actions">
+              <!-- Dynamic Actions based on view and status -->
+              {% if view_type == 'invitations' %}
+                {% if request.status|lower == 'pending' %}
+                <div class="action-buttons">
+                  <button class="btn-action accept" onclick="updateSwapStatus('{{ request.id }}', 'accepted')">
+                    <i class="fas fa-check"></i>
+                    Accept
+                  </button>
+                  <button class="btn-action reject" onclick="updateSwapStatus('{{ request.id }}', 'rejected')">
+                    <i class="fas fa-times"></i>
+                    Reject
+                  </button>
+                  <button class="btn-action details" onclick="showRequestDetails('{{ request.id }}')">
+                    <i class="fas fa-eye"></i>
+                    Details
+                  </button>
+                </div>
+                {% elif request.status|lower == 'accepted' %}
+                <div class="action-buttons">
+                  <button class="btn-action schedule" onclick="scheduleSwap('{{ request.id }}')">
+                    <i class="fas fa-calendar-plus"></i>
+                    Schedule
+                  </button>
+                  <button class="btn-action complete" onclick="updateSwapStatus('{{ request.id }}', 'completed')">
+                    <i class="fas fa-trophy"></i>
+                    Complete
+                  </button>
+                  <button class="btn-action message" onclick="messageUser('{{ request.userId }}')">
+                    <i class="fas fa-comment"></i>
+                    Message
+                  </button>
+                </div>
+                {% else %}
+                <div class="action-buttons">
+                  <button class="btn-action details" onclick="showRequestDetails('{{ request.id }}')">
+                    <i class="fas fa-eye"></i>
+                    View Details
+                  </button>
+                  {% if request.status|lower == 'completed' %}
+                  <button class="btn-action rate" onclick="rateSwap('{{ request.id }}')">
+                    <i class="fas fa-star"></i>
+                    Rate
+                  </button>
+                  {% endif %}
+                </div>
+                {% endif %}
+                
+              {% else %} <!-- My Sent Requests -->
+                {% if request.status|lower == 'pending' %}
+                <div class="action-buttons">
+                  <button class="btn-action cancel" onclick="updateSwapStatus('{{ request.id }}', 'cancelled')">
+                    <i class="fas fa-ban"></i>
+                    Cancel
+                  </button>
+                  <button class="btn-action details" onclick="showRequestDetails('{{ request.id }}')">
+                    <i class="fas fa-eye"></i>
+                    Details
+                  </button>
+                </div>
+                {% elif request.status|lower == 'accepted' %}
+                <div class="action-buttons">
+                  <button class="btn-action schedule" onclick="scheduleSwap('{{ request.id }}')">
+                    <i class="fas fa-calendar-plus"></i>
+                    Schedule
+                  </button>
+                  <button class="btn-action complete" onclick="updateSwapStatus('{{ request.id }}', 'completed')">
+                    <i class="fas fa-trophy"></i>
+                    Complete
+                  </button>
+                  <button class="btn-action message" onclick="messageUser('{{ request.userId }}')">
+                    <i class="fas fa-comment"></i>
+                    Message
+                  </button>
+                </div>
+                {% else %}
+                <div class="action-buttons">
+                  <button class="btn-action details" onclick="showRequestDetails('{{ request.id }}')">
+                    <i class="fas fa-eye"></i>
+                    View Details
+                  </button>
+                  {% if request.status|lower == 'completed' %}
+                  <button class="btn-action rate" onclick="rateSwap('{{ request.id }}')">
+                    <i class="fas fa-star"></i>
+                    Rate
+                  </button>
+                  {% endif %}
+                </div>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-exchange-alt"></i>
+          </div>
+          <h3>No Swap Requests Found</h3>
+          <p>
+            {% if view_type == 'invitations' %}
+            You haven't received any swap invitations yet. When someone wants to exchange skills with you, it will appear here.
+            {% else %}
+            You haven't sent any swap requests yet. Browse users and send your first request!
+            {% endif %}
+          </p>
+          <div class="empty-actions">
+            {% if view_type == 'my_requests' %}
+            <a href="{{ url_for('main.app') }}" class="btn-primary">
+              <i class="fas fa-search"></i>
+              Find Users to Swap With
+            </a>
+            {% else %}
+            <a href="{{ url_for('main.app') }}" class="btn-primary">
+              <i class="fas fa-user-plus"></i>
+              Update Your Skills to Get Noticed
+            </a>
+            {% endif %}
+            <button class="btn-secondary" onclick="refreshRequests()">
+              <i class="fas fa-sync-alt"></i>
+              Refresh
+            </button>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      
+      <!-- Load More Button -->
+      {% if swap_requests|length >= 10 %}
+      <div class="load-more-container">
+        <button class="btn-load-more" id="loadMoreBtn" onclick="loadMoreRequests()">
+          <i class="fas fa-plus"></i>
+          Load More Requests
+        </button>
+      </div>
+      {% endif %}
+    </main>
   </div>
-</div>
-{% endfor %}
+
+  <!-- Request Details Modal -->
+  <div class="modal-overlay" id="detailsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-info-circle"></i>
+          Swap Request Details
+        </h3>
+        <button class="modal-close" onclick="closeModal('detailsModal')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="detailsModalBody">
+        <!-- Dynamic content loaded via JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-content small">
+      <div class="modal-header">
+        <h3 id="confirmTitle">Confirm Action</h3>
+        <button class="modal-close" onclick="closeModal('confirmModal')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage">Are you sure you want to perform this action?</p>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeModal('confirmModal')">Cancel</button>
+          <button class="btn-primary" id="confirmActionBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Message Modal -->
+  <div class="modal-overlay" id="messageModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-envelope"></i>
+          Full Message
+        </h3>
+        <button class="modal-close" onclick="closeModal('messageModal')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="fullMessageContent"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="{{ url_for('static', filename='js/seeRequest.js') }}"></script>
+  <script>
+    // Global variables
+    let currentSwapId = null;
+    let currentAction = null;
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Swap Requests Page Initialized');
+      
+      // Hide loading overlay
+      setTimeout(() => {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) {
+          loadingOverlay.style.opacity = '0';
+          loadingOverlay.style.pointerEvents = 'none';
+          setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+          }, 300);
+        }
+        
+        // Animate cards
+        animateCards();
+      }, 500);
+      
+      // Initialize event listeners
+      initializeEventListeners();
+    });
+    
+    function animateCards() {
+      const cards = document.querySelectorAll('.request-card');
+      cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('animate-in');
+      });
+    }
+    
+    function initializeEventListeners() {
+      // Status filter
+      const statusFilter = document.getElementById('statusFilter');
+      if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+          const view = document.querySelector('.view-tab.active').dataset.view;
+          const status = this.value;
+          const search = document.getElementById('searchInput').value;
+          window.location.href = `/see-request?view=${view}&status=${status}&q=${encodeURIComponent(search)}`;
+        });
+      }
+      
+      // Search input
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', debounce(filterRequests, 300));
+      }
+      
+      // Clear search
+      const clearSearch = document.getElementById('clearSearch');
+      if (clearSearch) {
+        clearSearch.addEventListener('click', function() {
+          searchInput.value = '';
+          filterRequests();
+        });
+      }
+      
+      // Confirmation modal button
+      const confirmBtn = document.getElementById('confirmActionBtn');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', executeConfirmedAction);
+      }
+      
+      // Close modals on escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeAllModals();
+        }
+      });
+    }
+    
+    function filterRequests() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const cards = document.querySelectorAll('.request-card');
+      
+      cards.forEach(card => {
+        const userName = card.dataset.user || '';
+        const skills = card.dataset.skill || '';
+        
+        const matches = searchTerm === '' || 
+                       userName.includes(searchTerm) || 
+                       skills.includes(searchTerm);
+        
+        if (matches) {
+          card.style.display = 'block';
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, 10);
+        } else {
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+          setTimeout(() => {
+            card.style.display = 'none';
+          }, 300);
+        }
+      });
+    }
+    
+    function refreshRequests() {
+      const view = document.querySelector('.view-tab.active').dataset.view;
+      const status = document.getElementById('statusFilter').value || 'all';
+      const search = document.getElementById('searchInput').value || '';
+      
+      showToast('Refreshing requests...', 'info');
+      
+      setTimeout(() => {
+        window.location.href = `/see-request?view=${view}&status=${status}&q=${encodeURIComponent(search)}`;
+      }, 500);
+    }
+    
+    function showRequestDetails(swapId) {
+      showLoading(true);
+      
+      fetch(`/api/swaps/${swapId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === 'success') {
+            populateDetailsModal(data.data);
+            showModal('detailsModal');
+          } else {
+            showToast('Could not load request details', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Network error. Please try again.', 'error');
+        })
+        .finally(() => {
+          showLoading(false);
+        });
+    }
+    
+    function populateDetailsModal(swapData) {
+      const modalBody = document.getElementById('detailsModalBody');
+      
+      // Format dates
+      const createdAt = swapData.createdAt ? new Date(swapData.createdAt.seconds * 1000) : new Date();
+      const updatedAt = swapData.updatedAt ? new Date(swapData.updatedAt.seconds * 1000) : null;
+      
+      modalBody.innerHTML = `
+        <div class="details-content">
+          <div class="detail-section">
+            <h4><i class="fas fa-users"></i> Participants</h4>
+            <div class="participants-grid">
+              <div class="participant">
+                <img src="${swapData.metadata?.fromUserPhoto || '/static/default-profile.png'}" 
+                     alt="${swapData.metadata?.fromUserName || 'Sender'}" class="participant-avatar">
+                <div class="participant-info">
+                  <strong>From:</strong>
+                  <h5>${swapData.metadata?.fromUserName || 'Unknown User'}</h5>
+                  <small>Request Sender</small>
+                </div>
+              </div>
+              <div class="participant">
+                <img src="${swapData.metadata?.toUserPhoto || '/static/default-profile.png'}" 
+                     alt="${swapData.metadata?.toUserName || 'Receiver'}" class="participant-avatar">
+                <div class="participant-info">
+                  <strong>To:</strong>
+                  <h5>${swapData.metadata?.toUserName || 'Unknown User'}</h5>
+                  <small>Request Receiver</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="detail-section">
+            <h4><i class="fas fa-exchange-alt"></i> Swap Details</h4>
+            <div class="swap-info-grid">
+              <div class="info-item">
+                <span class="info-label">Offered Skill:</span>
+                <span class="info-value skill-badge primary">
+                  <i class="fas fa-gift"></i>
+                  ${swapData.offeredSkill || 'Not specified'}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Requested Skill:</span>
+                <span class="info-value skill-badge secondary">
+                  <i class="fas fa-bullseye"></i>
+                  ${swapData.requestedSkill || 'Not specified'}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Status:</span>
+                <span class="info-value status-${swapData.status.toLowerCase()}">
+                  ${swapData.status}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Request ID:</span>
+                <span class="info-value">${swapData.swapId || swapData.id}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Created:</span>
+                <span class="info-value">${createdAt.toLocaleString()}</span>
+              </div>
+              ${updatedAt ? `
+              <div class="info-item">
+                <span class="info-label">Last Updated:</span>
+                <span class="info-value">${updatedAt.toLocaleString()}</span>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+          
+          ${swapData.message ? `
+          <div class="detail-section">
+            <h4><i class="fas fa-envelope"></i> Message</h4>
+            <div class="message-full">
+              <p>${swapData.message}</p>
+            </div>
+          </div>
+          ` : ''}
+          
+          <div class="detail-section">
+            <h4><i class="fas fa-history"></i> Timeline</h4>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot primary"></div>
+                <div class="timeline-content">
+                  <strong>Request Created</strong>
+                  <span>${createdAt.toLocaleString()}</span>
+                </div>
+              </div>
+              ${updatedAt ? `
+              <div class="timeline-item">
+                <div class="timeline-dot success"></div>
+                <div class="timeline-content">
+                  <strong>Status Updated</strong>
+                  <span>${updatedAt.toLocaleString()}</span>
+                </div>
+              </div>
+              ` : ''}
+              <div class="timeline-item">
+                <div class="timeline-dot info"></div>
+                <div class="timeline-content">
+                  <strong>Current Status</strong>
+                  <span class="status-${swapData.status.toLowerCase()}">
+                    ${swapData.status.charAt(0).toUpperCase() + swapData.status.slice(1)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    function updateSwapStatus(swapId, action) {
+      currentSwapId = swapId;
+      currentAction = action;
+      
+      const messages = {
+        'accepted': 'Are you sure you want to accept this swap request?',
+        'rejected': 'Are you sure you want to reject this swap request?',
+        'cancelled': 'Are you sure you want to cancel this swap request?',
+        'completed': 'Mark this swap as completed? This action cannot be undone.'
+      };
+      
+      document.getElementById('confirmMessage').textContent = messages[action] || 'Are you sure you want to perform this action?';
+      document.getElementById('confirmTitle').textContent = `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+      
+      showModal('confirmModal');
+    }
+    
+    function executeConfirmedAction() {
+      if (!currentSwapId || !currentAction) return;
+      
+      showLoading(true);
+      closeModal('confirmModal');
+      
+      // Create form data
+      const formData = new FormData();
+      formData.append('action', currentAction);
+      
+      fetch(`/update-status/${currentSwapId}`, {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          showToast(data.message, 'success');
+          // Reload page after delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showToast(data.message, 'error');
+          showLoading(false);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Network error. Please try again.', 'error');
+        showLoading(false);
+      });
+    }
+    
+    function showFullMessage(swapId) {
+      fetch(`/api/swaps/${swapId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            document.getElementById('fullMessageContent').textContent = data.data.message || 'No message provided.';
+            showModal('messageModal');
+          } else {
+            showToast('Could not load message', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Network error. Please try again.', 'error');
+        });
+    }
+    
+    function viewUserProfile(userId) {
+      window.location.href = `/swap/${userId}`;
+    }
+    
+    function showModal(modalId) {
+      document.getElementById(modalId).classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+      document.body.style.overflow = 'auto';
+    }
+    
+    function closeAllModals() {
+      document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.classList.remove('active');
+      });
+      document.body.style.overflow = 'auto';
+    }
+    
+    function showLoading(show) {
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay) {
+        if (show) {
+          loadingOverlay.style.display = 'flex';
+          setTimeout(() => {
+            loadingOverlay.style.opacity = '1';
+          }, 10);
+        } else {
+          loadingOverlay.style.opacity = '0';
+          setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+          }, 300);
+        }
+      }
+    }
+    
+    function showToast(message, type = 'info') {
+      const toastContainer = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      
+      const icons = {
+        'success': 'check-circle',
+        'error': 'exclamation-circle',
+        'warning': 'exclamation-triangle',
+        'info': 'info-circle'
+      };
+      
+      toast.innerHTML = `
+        <i class="fas fa-${icons[type] || 'info-circle'}"></i>
+        <span>${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      // Show toast
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 10);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.remove();
+          }
+        }, 300);
+      }, 5000);
+    }
+    
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+    
+    // Make functions globally available
+    window.filterByStatus = function(status) {
+      const view = document.querySelector('.view-tab.active').dataset.view;
+      window.location.href = `/see-request?view=${view}&status=${status}`;
+    };
+    
+    window.scheduleSwap = function(id) { 
+      showToast('Schedule feature coming soon!', 'info');
+    };
+    
+    window.messageUser = function(id) { 
+      showToast('Messaging feature coming soon!', 'info');
+    };
+    
+    window.rateSwap = function(id) { 
+      showToast('Rating feature coming soon!', 'info');
+    };
+    
+    window.viewUserProfile = viewUserProfile;
+  </script>
 </body>
 </html>

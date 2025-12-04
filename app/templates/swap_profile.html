@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/swap_profile.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
   <!-- Loading Screen -->
@@ -53,42 +54,104 @@
       <div class="profile-background"></div>
       
       <div class="profile-content">
-        <!-- Profile Header -->
+        <!-- Profile Header with Image on Right -->
         <div class="profile-header">
-          <div class="profile-image-container">
-            <img src="{{ user_data.photo_url }}" alt="{{ user_data.name }}" class="profile-image">
-            <div class="profile-badge">
-              <i class="fas fa-check-circle"></i>
-            </div>
-          </div>
-          
           <div class="profile-info">
             <div class="profile-meta">
               <h1 class="user-name">{{ user_data.name }}</h1>
+              {% if user_data.headline %}
+              <p class="user-headline">{{ user_data.headline }}</p>
+              {% endif %}
+              
               <div class="rating-display">
                 <div class="stars">
+                  {% set rating = user_data.get('rating', 3.8)|float %}
                   {% for i in range(5) %}
-                    {% if i < user_data.get('rating', 0)|int %}
+                    {% if i < rating|int %}
                     <i class="fas fa-star"></i>
+                    {% elif (rating - i) > 0 and (rating - i) < 1 %}
+                    <i class="fas fa-star-half-alt"></i>
                     {% else %}
                     <i class="far fa-star"></i>
                     {% endif %}
                   {% endfor %}
                 </div>
-                <span class="rating-text">{{ user_data.get('rating', 'N/A') }}/5 Rating</span>
+                <span class="rating-text">{{ "%.1f"|format(rating) }}/5 Rating</span>
               </div>
+              
+              <!-- Contact Info Inside Profile Meta -->
+              <div class="profile-contact">
+                <div class="contact-item">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>
+                    {% if user_data.city %}
+                      {{ user_data.city }}{% if user_data.state %}, {{ user_data.state }}{% endif %}{% if user_data.country %}, {{ user_data.country }}{% endif %}
+                    {% else %}
+                      Location not specified
+                    {% endif %}
+                  </span>
+                </div>
+                
+                {% if user_data.email %}
+                <div class="contact-item">
+                  <i class="fas fa-envelope"></i>
+                  <span>{{ user_data.email }}</span>
+                </div>
+                {% endif %}
+                
+                {% if user_data.availability %}
+                <div class="contact-item">
+                  <i class="fas fa-clock"></i>
+                  <span>{{ user_data.availability }}</span>
+                </div>
+                {% endif %}
+              </div>
+              
+              <!-- Social Media Icons -->
+              <div class="social-links">
+                {% if user_data.linkedin %}
+                <a href="{{ user_data.linkedin }}" target="_blank" class="social-link" title="LinkedIn">
+                  <i class="fab fa-linkedin"></i>
+                </a>
+                {% endif %}
+                
+                {% if user_data.github %}
+                <a href="{{ user_data.github }}" target="_blank" class="social-link" title="GitHub">
+                  <i class="fab fa-github"></i>
+                </a>
+                {% endif %}
+                
+                {% if user_data.twitter %}
+                <a href="{{ user_data.twitter }}" target="_blank" class="social-link" title="Twitter">
+                  <i class="fab fa-twitter"></i>
+                </a>
+                {% endif %}
+                
+                {% if user_data.instagram %}
+                <a href="{{ user_data.instagram }}" target="_blank" class="social-link" title="Instagram">
+                  <i class="fab fa-instagram"></i>
+                </a>
+                {% endif %}
+                
+                {% if user_data.website %}
+                <a href="{{ user_data.website }}" target="_blank" class="social-link" title="Website">
+                  <i class="fas fa-globe"></i>
+                </a>
+                {% endif %}
+              </div>
+              
               <div class="profile-stats">
                 <div class="stat">
-                  <span class="stat-number">24</span>
-                  <span class="stat-label">Swaps</span>
+                  <span class="stat-number">{{ user_data.get('education')|length if user_data.get('education') else 0 }}</span>
+                  <span class="stat-label">Education</span>
                 </div>
                 <div class="stat">
-                  <span class="stat-number">18</span>
-                  <span class="stat-label">Completed</span>
+                  <span class="stat-number">{{ user_data.get('experience')|length if user_data.get('experience') else 0 }}</span>
+                  <span class="stat-label">Experience</span>
                 </div>
                 <div class="stat">
-                  <span class="stat-number">96%</span>
-                  <span class="stat-label">Success Rate</span>
+                  <span class="stat-number">{{ user_data.get('certifications')|length if user_data.get('certifications') else 0 }}</span>
+                  <span class="stat-label">Certifications</span>
                 </div>
               </div>
             </div>
@@ -98,100 +161,353 @@
                 <i class="fas fa-handshake"></i>
                 <span>Request Swap</span>
               </a>
-              <button class="message-btn">
+              <button class="message-btn" onclick="handleMessageClick()">
                 <i class="fas fa-envelope"></i>
                 <span>Message</span>
               </button>
             </div>
           </div>
+          
+          <!-- Profile Image Container on Right -->
+          <div class="profile-image-container">
+            <div class="image-wrapper">
+              <img src="{{ user_data.photo_url }}" alt="{{ user_data.name }}" class="profile-image" id="profileImage" onerror="this.src='https://via.placeholder.com/300/667ee0/ffffff?text=SkillSwap'">
+              <div class="profile-badge">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              {% if user_data.phone %}
+              <div class="phone-badge">
+                <i class="fas fa-phone"></i>
+                <span>{{ user_data.phone }}</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
         </div>
 
-        <!-- Profile Details -->
-        <div class="profile-details">
-          <!-- Skills Offered Section -->
-          <div class="skills-section">
-            <div class="section-header">
-              <div class="section-icon">
-                <i class="fas fa-share"></i>
-              </div>
-              <h2>Skills Offered</h2>
-            </div>
-            <div class="skills-grid">
-              {% for skill in user_data.offeredSkill %}
-              <div class="skill-card offered">
-                <div class="skill-icon">
-                  <i class="fas fa-check"></i>
+        <!-- Profile Details Grid -->
+        <div class="profile-grid">
+          <!-- Left Column -->
+          <div class="left-column">
+            <!-- About Section -->
+            {% if user_data.about %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-user"></i>
                 </div>
-                <span class="skill-name">{{ skill }}</span>
+                <h2>About</h2>
               </div>
-              {% endfor %}
-            </div>
+              <div class="section-content">
+                <p>{{ user_data.about }}</p>
+              </div>
+            </section>
+            {% endif %}
+
+            <!-- Skills Offered Section -->
+            {% if user_data.offeredSkill %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-share"></i>
+                </div>
+                <h2>Skills Offered</h2>
+              </div>
+              <div class="skills-grid">
+                {% for skill in user_data.offeredSkill %}
+                <div class="skill-card offered">
+                  <div class="skill-icon">
+                    <i class="fas fa-check"></i>
+                  </div>
+                  <span class="skill-name">{{ skill }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            </section>
+            {% endif %}
+
+            <!-- Skills Wanted Section -->
+            {% if user_data.requestedSkill %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-hand-holding-heart"></i>
+                </div>
+                <h2>Skills Wanted</h2>
+              </div>
+              <div class="skills-grid">
+                {% for skill in user_data.requestedSkill %}
+                <div class="skill-card wanted">
+                  <div class="skill-icon">
+                    <i class="fas fa-search"></i>
+                  </div>
+                  <span class="skill-name">{{ skill }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            </section>
+            {% endif %}
+
+            <!-- Additional Skills -->
+            {% if user_data.skills %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-tools"></i>
+                </div>
+                <h2>Additional Skills</h2>
+              </div>
+              <div class="skills-grid">
+                {% for skill in user_data.skills %}
+                <div class="skill-card">
+                  <div class="skill-icon">
+                    <i class="fas fa-star"></i>
+                  </div>
+                  <span class="skill-name">{{ skill }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            </section>
+            {% endif %}
+
+            <!-- Languages -->
+            {% if user_data.languages %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-language"></i>
+                </div>
+                <h2>Languages</h2>
+              </div>
+              <div class="languages-list">
+                {% for language in user_data.languages %}
+                <div class="language-item">
+                  <span class="language-name">{{ language }}</span>
+                  <div class="language-proficiency">
+                    <div class="proficiency-dot active"></div>
+                    <div class="proficiency-dot active"></div>
+                    <div class="proficiency-dot active"></div>
+                    <div class="proficiency-dot"></div>
+                    <div class="proficiency-dot"></div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </section>
+            {% endif %}
           </div>
 
-          <!-- Skills Wanted Section -->
-          <div class="skills-section">
-            <div class="section-header">
-              <div class="section-icon">
-                <i class="fas fa-hand-holding-heart"></i>
-              </div>
-              <h2>Skills Wanted</h2>
-            </div>
-            <div class="skills-grid">
-              {% for skill in user_data.requestedSkill %}
-              <div class="skill-card wanted">
-                <div class="skill-icon">
-                  <i class="fas fa-search"></i>
+          <!-- Right Column -->
+          <div class="right-column">
+            <!-- Education -->
+            {% if user_data.education %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-graduation-cap"></i>
                 </div>
-                <span class="skill-name">{{ skill }}</span>
+                <h2>Education</h2>
               </div>
-              {% endfor %}
-            </div>
-          </div>
+              <div class="education-list">
+                {% for edu in user_data.education %}
+                <div class="education-item {% if edu.current %}current{% endif %}">
+                  <div class="education-header">
+                    <h3>
+                      {% if edu.degree_type %}
+                        {{ edu.degree_type }}
+                        {% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}
+                      {% else %}
+                        {{ edu.field_of_study if edu.field_of_study else "Education" }}
+                      {% endif %}
+                    </h3>
+                    {% if edu.current %}
+                    <span class="current-badge">Current</span>
+                    {% endif %}
+                  </div>
+                  <div class="education-details">
+                    <p class="institution">{{ edu.institution_name }}</p>
+                    <p class="institution-type">{{ edu.institution_type }}</p>
+                    <div class="education-meta">
+                      <span class="location">{{ edu.location }}</span>
+                      <span class="date">
+                        {{ edu.start_date if edu.start_date }} {% if edu.end_date %}- {{ edu.end_date }}{% endif %}
+                      </span>
+                    </div>
+                    {% if edu.grade %}
+                    <div class="grade">
+                      <i class="fas fa-chart-line"></i>
+                      <span>Grade: {{ edu.grade }}</span>
+                    </div>
+                    {% endif %}
+                    {% if edu.description %}
+                    <p class="description">{{ edu.description }}</p>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </section>
+            {% endif %}
 
-          <!-- About Section -->
-          <div class="about-section">
-            <div class="section-header">
-              <div class="section-icon">
-                <i class="fas fa-user"></i>
+            <!-- Experience -->
+            {% if user_data.experience %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-briefcase"></i>
+                </div>
+                <h2>Experience</h2>
               </div>
-              <h2>About</h2>
-            </div>
-            <div class="about-content">
-              <p>Passionate about sharing knowledge and learning new skills. I believe in the power of community and collaborative growth through skill exchange.</p>
-              <div class="about-details">
-                <div class="detail-item">
-                  <i class="fas fa-map-marker-alt"></i>
-                  <span>New York, NY</span>
+              <div class="experience-list">
+                {% for exp in user_data.experience %}
+                <div class="experience-item">
+                  <div class="experience-header">
+                    <h3>{{ exp.get('job_title', 'Position') }}</h3>
+                    <span class="company">{{ exp.get('company', 'Company') }}</span>
+                  </div>
+                  <div class="experience-details">
+                    <div class="experience-meta">
+                      <span class="location">{{ exp.get('location', '') }}</span>
+                      <span class="date">
+                        {{ exp.get('start_date', '') }} {% if exp.get('end_date') %}- {{ exp.end_date }}{% else %}- Present{% endif %}
+                      </span>
+                    </div>
+                    {% if exp.get('description') %}
+                    <p class="description">{{ exp.description }}</p>
+                    {% endif %}
+                    {% if exp.get('technologies') %}
+                    <div class="tech-tags">
+                      {% for tech in exp.technologies %}
+                      <span class="tech-tag">{{ tech }}</span>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
                 </div>
-                <div class="detail-item">
-                  <i class="fas fa-clock"></i>
-                  <span>Available Evenings & Weekends</span>
-                </div>
-                <div class="detail-item">
-                  <i class="fas fa-calendar"></i>
-                  <span>Member since 2023</span>
-                </div>
+                {% endfor %}
               </div>
-            </div>
-          </div>
+            </section>
+            {% endif %}
 
-          <!-- Feedback Section -->
-          <div class="feedback-section">
-            <div class="section-header">
-              <div class="section-icon">
-                <i class="fas fa-comments"></i>
+            <!-- Certifications -->
+            {% if user_data.certifications %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-award"></i>
+                </div>
+                <h2>Certifications</h2>
               </div>
-              <h2>Community Feedback</h2>
-            </div>
-            <div class="feedback-content">
-              <div class="feedback-placeholder">
-                <i class="fas fa-comment-dots"></i>
-                <h3>Feedback Coming Soon!</h3>
-                <p>We're working on a feedback system to help build trust within our community.</p>
+              <div class="certifications-list">
+                {% for cert in user_data.certifications %}
+                <div class="certification-item">
+                  <div class="certification-header">
+                    <h3>{{ cert.name }}</h3>
+                    <span class="organization">{{ cert.organization }}</span>
+                  </div>
+                  <div class="certification-details">
+                    <div class="cert-meta">
+                      <span class="credential-id">
+                        <i class="fas fa-id-card"></i>
+                        ID: {{ cert.credential_id if cert.credential_id else "Not specified" }}
+                      </span>
+                      <span class="date">
+                        <i class="fas fa-calendar"></i>
+                        Issued: {{ cert.issue_date if cert.issue_date else "Not specified" }}
+                        {% if cert.expiry_date and not cert.no_expiry %}
+                        - {{ cert.expiry_date }}
+                        {% elif cert.no_expiry %}
+                        (No Expiry)
+                        {% endif %}
+                      </span>
+                    </div>
+                    {% if cert.certificate_url %}
+                    <a href="{{ cert.certificate_url }}" target="_blank" class="view-certificate">
+                      <i class="fas fa-external-link-alt"></i>
+                      View Certificate
+                    </a>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endfor %}
               </div>
-            </div>
+            </section>
+            {% endif %}
+
+            <!-- Projects -->
+            {% if user_data.projects %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-project-diagram"></i>
+                </div>
+                <h2>Projects</h2>
+              </div>
+              <div class="projects-grid">
+                {% for project in user_data.projects %}
+                <div class="project-card" data-project='{{ project|tojson }}'>
+                  <div class="project-header">
+                    <h3>{{ project.title }}</h3>
+                    {% if project.type %}
+                    <span class="project-type">{{ project.type }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="project-content">
+                    {% if project.role %}
+                    <div class="project-role">
+                      <i class="fas fa-user-tie"></i>
+                      <span>{{ project.role }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if project.description %}
+                    <p class="project-description">{{ project.description|truncate(150) }}</p>
+                    {% endif %}
+                    
+                    {% if project.technologies %}
+                    <div class="tech-tags">
+                      {% for tech in project.technologies|slice(4) %}
+                      <span class="tech-tag">{{ tech }}</span>
+                      {% endfor %}
+                      {% if project.technologies|length > 4 %}
+                      <span class="tech-tag more">+{{ project.technologies|length - 4 }} more</span>
+                      {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="project-actions">
+                      <button class="view-project-btn" onclick="viewProjectDetails(this)">
+                        <i class="fas fa-eye"></i>
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </section>
+            {% endif %}
+
+            <!-- Achievements -->
+            {% if user_data.achievements %}
+            <section class="profile-section">
+              <div class="section-header">
+                <div class="section-icon">
+                  <i class="fas fa-trophy"></i>
+                </div>
+                <h2>Achievements</h2>
+              </div>
+              <div class="achievements-list">
+                {% for achievement in user_data.achievements %}
+                <div class="achievement-item">
+                  <i class="fas fa-medal"></i>
+                  <span>{{ achievement }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            </section>
+            {% endif %}
           </div>
-         
         </div>
       </div>
     </div>
@@ -210,13 +526,181 @@
         </div>
       </div>
       
-      
       <div class="footer-bottom">
-        <p>&copy; 2024 SkillSwap. All rights reserved.</p>
+        <p>&copy; <span class="current-year"></span> SkillSwap. All rights reserved.</p>
       </div>
     </div>
   </footer>
 
+  <!-- Project Details Modal -->
+  <div class="modal-overlay" id="projectModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="projectTitle"></h3>
+        <button class="close-modal" onclick="closeProjectModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="project-modal-content" id="projectModalContent">
+          <!-- Content will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='js/swap_profile.js') }}"></script>
+  <script>
+    // Set current year for footer
+    document.addEventListener('DOMContentLoaded', function() {
+      const now = new Date();
+      const yearElements = document.querySelectorAll('.current-year');
+      yearElements.forEach(el => {
+        el.textContent = now.getFullYear();
+      });
+      
+      // Add smooth image loading
+      const profileImage = document.getElementById('profileImage');
+      if (profileImage) {
+        profileImage.addEventListener('load', function() {
+          this.style.opacity = '1';
+        });
+        // Set opacity to 1 if image is already loaded
+        if (profileImage.complete) {
+          profileImage.style.opacity = '1';
+        }
+      }
+    });
+
+    // Project Modal Functions
+    function viewProjectDetails(button) {
+      const projectCard = button.closest('.project-card');
+      const projectData = JSON.parse(projectCard.dataset.project);
+      
+      // Set modal title
+      document.getElementById('projectTitle').textContent = projectData.title;
+      
+      // Build modal content
+      const modalContent = document.getElementById('projectModalContent');
+      let html = '';
+      
+      // Type
+      if (projectData.type) {
+        html += `<div class="project-type-badge">${projectData.type}</div>`;
+      }
+      
+      // Role
+      if (projectData.role) {
+        html += `
+          <div class="project-role-row">
+            <i class="fas fa-user-tie"></i>
+            <span>${projectData.role}</span>
+          </div>
+        `;
+      }
+      
+      // Description
+      if (projectData.description) {
+        html += `
+          <div class="project-description-full">
+            <h4>Description</h4>
+            <p>${projectData.description}</p>
+          </div>
+        `;
+      }
+      
+      // Technologies
+      if (projectData.technologies && projectData.technologies.length > 0) {
+        html += `
+          <div class="project-technologies">
+            <h4>Technologies Used</h4>
+            <div class="tech-tags-modal">
+              ${projectData.technologies.map(tech => `<span class="tech-tag">${tech}</span>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      // Links
+      if (projectData.links && projectData.links.length > 0) {
+        html += `
+          <div class="project-links-modal">
+            <h4>Project Links</h4>
+            <div class="links-grid">
+              ${projectData.links.map(link => {
+                const icon = link.name.toLowerCase().includes('github') ? 'fab fa-github' : 
+                            link.name.toLowerCase().includes('live') ? 'fas fa-external-link-alt' : 
+                            'fas fa-link';
+                return `
+                  <a href="${link.url}" target="_blank" class="project-link-modal">
+                    <i class="${icon}"></i>
+                    <span>${link.name}</span>
+                  </a>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      } else if (projectData.github || projectData.live_url) {
+        // For backward compatibility
+        html += `
+          <div class="project-links-modal">
+            <h4>Project Links</h4>
+            <div class="links-grid">
+              ${projectData.github ? `
+                <a href="${projectData.github}" target="_blank" class="project-link-modal">
+                  <i class="fab fa-github"></i>
+                  <span>GitHub Repository</span>
+                </a>
+              ` : ''}
+              ${projectData.live_url ? `
+                <a href="${projectData.live_url}" target="_blank" class="project-link-modal">
+                  <i class="fas fa-external-link-alt"></i>
+                  <span>Live Demo</span>
+                </a>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }
+      
+      // Images (if any)
+      if (projectData.images && projectData.images.length > 0) {
+        html += `
+          <div class="project-images">
+            <h4>Project Images</h4>
+            <div class="images-grid">
+              ${projectData.images.slice(0, 3).map(img => `
+                <img src="${img}" alt="Project Image" class="project-image">
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      modalContent.innerHTML = html;
+      
+      // Show modal
+      document.getElementById('projectModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    
+    function closeProjectModal() {
+      document.getElementById('projectModal').classList.remove('active');
+      document.body.style.overflow = 'auto';
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('projectModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeProjectModal();
+      }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeProjectModal();
+      }
+    });
+  </script>
 </body>
 </html>

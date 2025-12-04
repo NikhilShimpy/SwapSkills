@@ -1,38 +1,236 @@
-<!-- templates/swap_request.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Swap Request</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/swap_request.css') }}">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Swap | SkillSwap</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/swap_request.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-  <div class="form">
-    <h2>Request a Swap</h2>
-    <form method="POST">
-      <!-- Your offered skills -->
-      <label for="your_skill">Choose one of your offered skills:</label>
-      <select name="your_skill" id="your_skill" required>
-        {% for skill in current_user_skills %}
-          <option value="{{ skill }}">{{ skill }}</option>
-        {% endfor %}
-      </select>
+    <div class="swap-request-container">
+        <!-- Header -->
+        <header class="request-header">
+            <div class="header-content">
+                <a href="{{ url_for('main.app') }}" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back
+                </a>
+                <h1>Request Skill Swap</h1>
+                <p>Propose a skill exchange with {{ target_user_name }}</p>
+            </div>
+        </header>
 
-      <!-- Their wanted skills -->
-      <label for="their_skill">Choose one of their wanted skills:</label>
-      <select name="their_skill" id="their_skill" required>
-        {% for skill in target_user_requested_skills %}
-          <option value="{{ skill }}">{{ skill }}</option>
-        {% endfor %}
-      </select>
+        <!-- Main Content -->
+        <main class="request-main">
+            <!-- Swap Preview Card -->
+            <div class="swap-preview-card" id="swapPreview">
+                <div class="preview-header">
+                    <h3><i class="fas fa-exchange-alt"></i> Swap Preview</h3>
+                </div>
+                <div class="preview-content">
+                    <div class="swap-flow">
+                        <div class="swap-step you">
+                            <div class="step-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="step-content">
+                                <h4>You Offer</h4>
+                                <div class="skill-preview" id="offeredSkillPreview">
+                                    <i class="fas fa-share"></i>
+                                    <span>Select a skill</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="swap-arrow">
+                            <i class="fas fa-arrows-alt-h"></i>
+                        </div>
+                        
+                        <div class="swap-step them">
+                            <div class="step-icon">
+                                <img src="{{ current_user_data.get('photo_url', '/static/default-profile.png') }}" alt="{{ target_user_name }}" class="user-avatar">
+                            </div>
+                            <div class="step-content">
+                                <h4>{{ target_user_name }} Offers</h4>
+                                <div class="skill-preview" id="requestedSkillPreview">
+                                    <i class="fas fa-hand-holding-heart"></i>
+                                    <span>Select a skill</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-      <!-- Message-->
-      <label for="message">Message:</label>
-      <textarea name="message" id="message" rows="4" placeholder="Write your message..."></textarea>
-      
-      <button type="submit">Submit</button>
-    </form>
-  </div>
+            <!-- Swap Form -->
+            <div class="swap-form-card">
+                <form id="swapRequestForm">
+                    <div class="form-section">
+                        <h3><i class="fas fa-cogs"></i> Select Skills</h3>
+                        
+                        <!-- Your Skills -->
+                        <div class="form-group">
+                            <label for="your_skill">
+                                <i class="fas fa-share"></i>
+                                Your Offered Skill
+                            </label>
+                            <div class="skills-selector">
+                                {% for skill in current_user_skills %}
+                                <div class="skill-option" data-skill="{{ skill }}" onclick="selectSkill(this, 'offered')">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>{{ skill }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="your_skill" id="your_skill" required>
+                        </div>
+
+                        <!-- Their Skills -->
+                        <div class="form-group">
+                            <label for="their_skill">
+                                <i class="fas fa-hand-holding-heart"></i>
+                                Request Skill from {{ target_user_name }}
+                            </label>
+                            <div class="skills-selector">
+                                {% for skill in target_user_requested_skills %}
+                                <div class="skill-option" data-skill="{{ skill }}" onclick="selectSkill(this, 'requested')">
+                                    <i class="fas fa-search"></i>
+                                    <span>{{ skill }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="their_skill" id="their_skill" required>
+                        </div>
+                    </div>
+
+                    <!-- Message Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-comment-dots"></i> Personalize Your Request</h3>
+                        <div class="form-group">
+                            <label for="message">
+                                <i class="fas fa-envelope"></i>
+                                Message (Optional)
+                            </label>
+                            <textarea 
+                                name="message" 
+                                id="message" 
+                                rows="4" 
+                                placeholder="Hi! I'd love to exchange skills with you. I can help you with [your skill] and I'm excited to learn [their skill] from you!"
+                                maxlength="500"></textarea>
+                            <div class="char-counter">
+                                <span id="charCount">0</span>/500 characters
+                            </div>
+                            
+                            <!-- Message Templates -->
+                            <div class="message-templates">
+                                <p class="template-label">Quick Templates:</p>
+                                <div class="template-buttons">
+                                    <button type="button" class="template-btn" onclick="useTemplate(1)">
+                                        Friendly Request
+                                    </button>
+                                    <button type="button" class="template-btn" onclick="useTemplate(2)">
+                                        Professional Exchange
+                                    </button>
+                                    <button type="button" class="template-btn" onclick="useTemplate(3)">
+                                        Quick Swap
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Terms & Conditions -->
+                    <div class="form-section">
+                        <div class="terms-agreement">
+                            <input type="checkbox" id="terms" name="terms" required>
+                            <label for="terms">
+                                I agree to the 
+                                <a href="#" class="terms-link">SkillSwap Terms of Service</a>
+                                and understand that this is a mutual skill exchange
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="previewSwap()">
+                            <i class="fas fa-eye"></i>
+                            Preview Swap
+                        </button>
+                        <button type="submit" class="btn-primary" id="submitBtn">
+                            <i class="fas fa-paper-plane"></i>
+                            Send Swap Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tips Section -->
+            <div class="tips-card">
+                <h3><i class="fas fa-lightbulb"></i> Tips for Successful Swaps</h3>
+                <div class="tips-list">
+                    <div class="tip">
+                        <i class="fas fa-clock"></i>
+                        <p>Be clear about your availability and time commitment</p>
+                    </div>
+                    <div class="tip">
+                        <i class="fas fa-comments"></i>
+                        <p>Personalize your message to increase acceptance rate</p>
+                    </div>
+                    <div class="tip">
+                        <i class="fas fa-handshake"></i>
+                        <p>Propose a specific time or format for the skill exchange</p>
+                    </div>
+                    <div class="tip">
+                        <i class="fas fa-star"></i>
+                        <p>Check the user's profile for compatibility before requesting</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Success Modal -->
+        <div class="modal-overlay" id="successModal">
+            <div class="modal-content">
+                <div class="modal-header success">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>Swap Request Sent!</h3>
+                    <button class="close-modal" onclick="closeSuccessModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Your swap request has been sent to <strong>{{ target_user_name }}</strong>.</p>
+                    <p>You'll be notified when they respond.</p>
+                    <div class="modal-actions">
+                        <a href="{{ url_for('main.see_request', view='sent') }}" class="btn-primary">
+                            <i class="fas fa-list"></i>
+                            View My Requests
+                        </a>
+                        <a href="{{ url_for('main.app') }}" class="btn-secondary">
+                            <i class="fas fa-home"></i>
+                            Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Modal -->
+        <div class="modal-overlay" id="previewModal">
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <i class="fas fa-eye"></i>
+                    <h3>Swap Preview</h3>
+                    <button class="close-modal" onclick="closePreviewModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="detailedPreview"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/swap_request.js') }}"></script>
 </body>
 </html>

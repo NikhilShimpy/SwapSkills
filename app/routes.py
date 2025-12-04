@@ -1,9 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 from firebase_admin import storage, firestore
 from .firebase_config import db, bucket
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 from math import ceil
+import uuid
+import time
 
 main = Blueprint('main', __name__)
 
@@ -487,6 +489,86 @@ def edit_profile():
     
     return render_template('edit_profile.html', user_data=user_data)
 
+# ------------------ Helper Functions for Swaps ------------------
+def generate_swap_id():
+    """Generate unique sequential swap ID"""
+    try:
+        counter_ref = db.collection('swap_counters').document('swap_counter')
+        
+        # Get current counter value
+        counter = counter_ref.get()
+        if counter.exists:
+            new_count = counter.get('count', 0) + 1
+        else:
+            new_count = 1
+        
+        # Update counter
+        counter_ref.set({
+            'count': new_count,
+            'lastUpdated': firestore.SERVER_TIMESTAMP
+        })
+        
+        return f"SWP{new_count:06d}"
+        
+    except Exception as e:
+        # Fallback to UUID if transaction fails
+        print(f"Error generating sequential ID: {str(e)}")
+        return f"SWP{uuid.uuid4().hex[:8].upper()}"
+
+def format_swap_timestamp(timestamp):
+    """Format Firestore timestamp to human-readable format"""
+    if not timestamp:
+        return "Recently"
+    
+    try:
+        # Handle Firestore timestamp
+        if hasattr(timestamp, 'to_date'):
+            dt = timestamp.to_date()
+        elif hasattr(timestamp, 'seconds'):
+            dt = datetime.fromtimestamp(timestamp.seconds)
+        elif isinstance(timestamp, datetime):
+            dt = timestamp
+        else:
+            return "Recently"
+        
+        # Format: "Dec 4, 2025 at 3:33 AM"
+        return dt.strftime('%b %d, %Y at %I:%M %p')
+        
+    except Exception as e:
+        print(f"Error formatting timestamp: {str(e)}")
+        return "Recently"
+
+def get_relative_time(dt):
+    """Convert datetime to relative time string"""
+    from datetime import datetime
+    now = datetime.now()
+    
+    # If dt is a Firestore timestamp, convert to datetime
+    if hasattr(dt, 'to_date'):
+        dt = dt.to_date()
+    
+    diff = now - dt
+    
+    seconds = diff.total_seconds()
+    minutes = seconds // 60
+    hours = minutes // 60
+    days = hours // 24
+    
+    if days > 365:
+        years = int(days // 365)
+        return f"{years} year{'s' if years > 1 else ''} ago"
+    elif days > 30:
+        months = int(days // 30)
+        return f"{months} month{'s' if months > 1 else ''} ago"
+    elif days > 0:
+        return f"{int(days)} day{'s' if days > 1 else ''} ago"
+    elif hours > 0:
+        return f"{int(hours)} hour{'s' if hours > 1 else ''} ago"
+    elif minutes > 0:
+        return f"{int(minutes)} minute{'s' if minutes > 1 else ''} ago"
+    else:
+        return "just now"
+
 # ------------------ Swap Routes ------------------
 @main.route('/request_swap/<target_user_id>', methods=['GET', 'POST'])
 def request_swap(target_user_id):
@@ -495,31 +577,135 @@ def request_swap(target_user_id):
     if not current_user_id:
         return redirect(url_for('main.login'))
 
-    current_user_doc = db.collection('users').document(current_user_id).get()
-    current_user_data = current_user_doc.to_dict() if current_user_doc.exists else {}
+    try:
+        current_user_doc = db.collection('users').document(current_user_id).get()
+        current_user_data = current_user_doc.to_dict() if current_user_doc.exists else {}
 
-    target_user_doc = db.collection('users').document(target_user_id).get()
-    target_user_data = target_user_doc.to_dict() if target_user_doc.exists else {}
+        target_user_doc = db.collection('users').document(target_user_id).get()
+        target_user_data = target_user_doc.to_dict() if target_user_doc.exists else {}
 
-    if request.method == 'POST':
-        swap_data = {
-            'fromUserId': current_user_id,
-            'toUserId': target_user_id,
-            'offeredSkill': request.form.get('your_skill'),
-            'requestedSkill': request.form.get('their_skill'),
-            'message': request.form.get('message'),
-            'status': 'pending',
-            'createdAt': datetime.now()
-        }
-        db.collection('swaps').add(swap_data)
+        if not target_user_data:
+            return jsonify({'status': 'error', 'message': 'User not found'}), 404
+
+        if request.method == 'POST':
+            # Get form data
+            if request.is_json:
+                data = request.get_json()
+                your_skill = data.get('your_skill', '')
+                their_skill = data.get('their_skill', '')
+                message = data.get('message', '')
+            else:
+                your_skill = request.form.get('your_skill', '')
+                their_skill = request.form.get('their_skill', '')
+                message = request.form.get('message', '')
+            
+            if not your_skill or not their_skill:
+                if request.is_json:
+                    return jsonify({'status': 'error', 'message': 'Please select both skills'}), 400
+                return redirect(url_for('main.request_swap', target_user_id=target_user_id))
+
+            # Generate swap ID
+            swap_id = generate_swap_id()
+            
+            # Create swap document
+            swap_data = {
+                'swapId': swap_id,
+                'fromUserId': current_user_id,
+                'toUserId': target_user_id,
+                'offeredSkill': your_skill,
+                'requestedSkill': their_skill,
+                'message': message,
+                'status': 'pending',
+                'createdAt': firestore.SERVER_TIMESTAMP,
+                'updatedAt': firestore.SERVER_TIMESTAMP,
+                'metadata': {
+                    'fromUserName': current_user_data.get('name', 'Unknown'),
+                    'fromUserPhoto': current_user_data.get('photo_url', '/static/default-profile.png'),
+                    'toUserName': target_user_data.get('name', 'Unknown'),
+                    'toUserPhoto': target_user_data.get('photo_url', '/static/default-profile.png')
+                }
+            }
+            
+            # Create swap document
+            swap_ref = db.collection('swaps').document()
+            swap_ref.set(swap_data)
+            
+            # Update denormalized user_swaps collections
+            # For sender
+            sent_ref = db.collection('user_swaps').document(f"{current_user_id}_sent")
+            sent_doc = sent_ref.get()
+            
+            if sent_doc.exists:
+                sent_ref.update({
+                    'swaps': firestore.ArrayUnion([swap_id]),
+                    'updatedAt': firestore.SERVER_TIMESTAMP
+                })
+            else:
+                sent_ref.set({
+                    'userId': current_user_id,
+                    'type': 'sent',
+                    'swaps': [swap_id],
+                    'createdAt': firestore.SERVER_TIMESTAMP,
+                    'updatedAt': firestore.SERVER_TIMESTAMP
+                })
+            
+            # For receiver
+            received_ref = db.collection('user_swaps').document(f"{target_user_id}_received")
+            received_doc = received_ref.get()
+            
+            if received_doc.exists:
+                received_ref.update({
+                    'swaps': firestore.ArrayUnion([swap_id]),
+                    'updatedAt': firestore.SERVER_TIMESTAMP
+                })
+            else:
+                received_ref.set({
+                    'userId': target_user_id,
+                    'type': 'received',
+                    'swaps': [swap_id],
+                    'createdAt': firestore.SERVER_TIMESTAMP,
+                    'updatedAt': firestore.SERVER_TIMESTAMP
+                })
+            
+            # Update user stats
+            # Update sender stats
+            sender_ref = db.collection('users').document(current_user_id)
+            sender_ref.update({
+                'swapCount': firestore.Increment(1),
+                'updatedAt': firestore.SERVER_TIMESTAMP
+            })
+            
+            # Update receiver stats
+            receiver_ref = db.collection('users').document(target_user_id)
+            receiver_ref.update({
+                'pendingSwapCount': firestore.Increment(1),
+                'updatedAt': firestore.SERVER_TIMESTAMP
+            })
+            
+            if request.is_json:
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Swap request sent successfully!',
+                    'swapId': swap_id
+                })
+            
+            return redirect(url_for('main.see_request', view='my_requests'))
+
+        # GET request - render form
+        return render_template(
+            'swap_request.html',
+            current_user_skills=current_user_data.get('offeredSkill', []),
+            target_user_requested_skills=target_user_data.get('requestedSkill', []),
+            target_user_id=target_user_id,
+            target_user_name=target_user_data.get('name', 'User'),
+            current_user_data=current_user_data
+        )
+
+    except Exception as e:
+        print(f"Error in swap request: {str(e)}")
+        if request.is_json:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
         return redirect(url_for('main.app'))
-
-    return render_template(
-        'swap_request.html',
-        current_user_skills=current_user_data.get('offeredSkill', []),
-        target_user_requested_skills=target_user_data.get('requestedSkill', []),
-        target_user_id=target_user_id
-    )
 
 @main.route('/swap/<user_id>')
 def view_swap_profile(user_id):
@@ -569,56 +755,303 @@ def view_swap_profile(user_id):
 # ------------------ Swap Requests Management ------------------
 @main.route('/see-request', methods=['GET'])
 def see_request():
-    """View swap requests"""
+    """View swap requests - FIXED VERSION"""
     current_user_id = session.get('user_id')
     if not current_user_id:
         return redirect(url_for('main.login'))
 
-    current_user_doc = db.collection('users').document(current_user_id).get()
-    current_user_data = current_user_doc.to_dict() if current_user_doc.exists else {}
+    try:
+        # Get current user data
+        current_user_doc = db.collection('users').document(current_user_id).get()
+        current_user_data = current_user_doc.to_dict() if current_user_doc.exists else {
+            'name': 'User',
+            'photo_url': '/static/default-profile.png'
+        }
 
-    view_type = request.args.get('view', 'invitations')
-    swap_requests = []
+        # Get view type and filters
+        view_type = request.args.get('view', 'invitations')
+        status_filter = request.args.get('status', 'all')
+        search_query = request.args.get('q', '').lower()
+        
+        # Initialize empty results
+        swap_requests = []
+        
+        # Determine query based on view type
+        if view_type == 'invitations':
+            # Get swaps where current user is receiver
+            query = db.collection('swaps').where('toUserId', '==', current_user_id)
+        else:
+            # Get swaps where current user is sender
+            query = db.collection('swaps').where('fromUserId', '==', current_user_id)
+        
+        # Execute query
+        swaps_docs = query.stream()
+        
+        # Process each swap
+        for doc in swaps_docs:
+            swap_data = doc.to_dict()
+            swap_data['firestore_id'] = doc.id
+            
+            # Apply status filter
+            if status_filter != 'all' and swap_data.get('status', '').lower() != status_filter:
+                continue
+            
+            # Determine which user info to show based on view
+            if view_type == 'invitations':
+                # For invitations: show sender's info (who sent the request)
+                other_user_id = swap_data.get('fromUserId')
+                user_name = swap_data.get('metadata', {}).get('fromUserName', 'Unknown')
+                user_photo = swap_data.get('metadata', {}).get('fromUserPhoto', '/static/default-profile.png')
+            else:
+                # For my_requests: show receiver's info (who received the request)
+                other_user_id = swap_data.get('toUserId')
+                user_name = swap_data.get('metadata', {}).get('toUserName', 'Unknown')
+                user_photo = swap_data.get('metadata', {}).get('toUserPhoto', '/static/default-profile.png')
+            
+            # Format timestamp
+            created_at = swap_data.get('createdAt')
+            created_at_formatted = format_swap_timestamp(created_at)
+            
+            # Get user data for additional info
+            other_user_doc = db.collection('users').document(other_user_id).get()
+            other_user_data = other_user_doc.to_dict() if other_user_doc.exists else {}
+            
+            # Prepare request data for template
+            request_data = {
+                'id': swap_data.get('swapId', doc.id),
+                'firestore_id': doc.id,
+                'swapId': swap_data.get('swapId', f"SWP{doc.id[:8].upper()}"),
+                'userId': other_user_id,
+                'userName': user_name,
+                'userPhoto': user_photo,
+                'offeredSkill': swap_data.get('offeredSkill', 'Not specified'),
+                'requestedSkill': swap_data.get('requestedSkill', 'Not specified'),
+                'message': swap_data.get('message', ''),
+                'status': swap_data.get('status', 'pending').capitalize(),
+                'createdAt_formatted': created_at_formatted,
+                'rating': generate_random_rating(),
+                'display_location': other_user_data.get('location', ''),
+                'city': other_user_data.get('city', ''),
+                'state': other_user_data.get('state', '')
+            }
+            
+            # Apply search filter
+            if search_query:
+                searchable_fields = [
+                    request_data['userName'].lower(),
+                    request_data['offeredSkill'].lower(),
+                    request_data['requestedSkill'].lower(),
+                    request_data['swapId'].lower()
+                ]
+                if not any(search_query in field for field in searchable_fields):
+                    continue
+            
+            swap_requests.append(request_data)
+        
+        # Sort by creation date (newest first)
+        swap_requests.sort(key=lambda x: parse_timestamp_for_sort(x.get('createdAt_formatted', '')), reverse=True)
+        
+        # Calculate statistics
+        stats = {
+            'total': len(swap_requests),
+            'pending': len([r for r in swap_requests if r['status'].lower() == 'pending']),
+            'accepted': len([r for r in swap_requests if r['status'].lower() == 'accepted']),
+            'completed': len([r for r in swap_requests if r['status'].lower() == 'completed']),
+            'rejected': len([r for r in swap_requests if r['status'].lower() == 'rejected'])
+        }
+        
+        return render_template(
+            'seeRequest.html',
+            swap_requests=swap_requests,
+            selected_status=status_filter,
+            current_user_data=current_user_data,
+            view_type=view_type,
+            stats=stats,
+            search_query=search_query
+        )
+        
+    except Exception as e:
+        print(f"Error in see_request: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return empty but functional page
+        return render_template(
+            'seeRequest.html',
+            swap_requests=[],
+            selected_status='all',
+            current_user_data={'name': 'User', 'photo_url': '/static/default-profile.png'},
+            view_type=view_type if 'view_type' in locals() else 'invitations',
+            stats={'total': 0, 'pending': 0, 'accepted': 0, 'completed': 0, 'rejected': 0}
+        )
 
-    if view_type == 'invitations':
-        query = db.collection('swaps').where('toUserId', '==', current_user_id)
-    else:
-        query = db.collection('swaps').where('fromUserId', '==', current_user_id)
+def parse_timestamp_for_sort(timestamp_str):
+    """Parse timestamp string for sorting"""
+    try:
+        # Try to parse the formatted string
+        return datetime.strptime(timestamp_str, '%b %d, %Y at %I:%M %p')
+    except:
+        return datetime.min
 
-    for doc in query.stream():
-        data = doc.to_dict()
-        user_id_ref = data['fromUserId'] if view_type == 'invitations' else data['toUserId']
-
-        user_doc_snapshot = db.collection('users').document(user_id_ref).get()
-        user_doc = user_doc_snapshot.to_dict() if user_doc_snapshot.exists else {}
-
-        data['fromUserName'] = user_doc.get('name', 'Unknown')
-        data['fromUserPhoto'] = user_doc.get('photo_url', '/static/default-profile.png')
-        data['fromUserRating'] = user_doc.get('rating', 'N/A')
-        data['id'] = doc.id
-        swap_requests.append(data)
-
-    return render_template(
-        'seeRequest.html',
-        swap_requests=swap_requests,
-        selected_status='',
-        current_user_data=current_user_data,
-        view_type=view_type
-    )
-
+# ------------------ Update Status Route (FIXED) ------------------
 @main.route('/update-status/<swap_id>', methods=['POST'])
 def update_status(swap_id):
-    """Update swap request status"""
-    action = request.form.get('action')
+    """Update swap status - FIXED VERSION"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        action = request.form.get('action', '').lower()
+        
+        # Find swap by swapId
+        swap_ref = None
+        swap_data = None
+        
+        # First try to find by custom swapId
+        swap_query = db.collection('swaps').where('swapId', '==', swap_id).limit(1).stream()
+        for doc in swap_query:
+            swap_ref = doc.reference
+            swap_data = doc.to_dict()
+            break
+        
+        # If not found, try as firestore document ID
+        if not swap_ref:
+            try:
+                swap_ref = db.collection('swaps').document(swap_id)
+                swap_doc = swap_ref.get()
+                if swap_doc.exists:
+                    swap_data = swap_doc.to_dict()
+                else:
+                    return jsonify({'status': 'error', 'message': 'Swap not found'}), 404
+            except:
+                return jsonify({'status': 'error', 'message': 'Swap not found'}), 404
+        
+        if not swap_data:
+            return jsonify({'status': 'error', 'message': 'Swap not found'}), 404
+        
+        # Verify permissions
+        is_receiver = swap_data.get('toUserId') == current_user_id
+        is_sender = swap_data.get('fromUserId') == current_user_id
+        
+        # Define allowed actions
+        allowed_actions = {
+            'accepted': is_receiver and swap_data.get('status') == 'pending',
+            'rejected': is_receiver and swap_data.get('status') == 'pending',
+            'completed': (is_sender or is_receiver) and swap_data.get('status') == 'accepted',
+            'cancelled': is_sender and swap_data.get('status') == 'pending'
+        }
+        
+        if not allowed_actions.get(action, False):
+            return jsonify({'status': 'error', 'message': 'Not authorized for this action'}), 403
+        
+        # Update the swap
+        update_data = {
+            'status': action,
+            'updatedAt': firestore.SERVER_TIMESTAMP
+        }
+        
+        swap_ref.update(update_data)
+        
+        # Update user stats if needed
+        if action == 'accepted':
+            # Decrease pending count for receiver
+            receiver_ref = db.collection('users').document(swap_data['toUserId'])
+            receiver_ref.update({
+                'pendingSwapCount': firestore.Increment(-1),
+                'activeSwapCount': firestore.Increment(1),
+                'updatedAt': firestore.SERVER_TIMESTAMP
+            })
+        elif action == 'completed':
+            # Increase completed count for both users
+            from_user_ref = db.collection('users').document(swap_data['fromUserId'])
+            to_user_ref = db.collection('users').document(swap_data['toUserId'])
+            
+            from_user_ref.update({
+                'completedSwapCount': firestore.Increment(1),
+                'activeSwapCount': firestore.Increment(-1),
+                'updatedAt': firestore.SERVER_TIMESTAMP
+            })
+            
+            to_user_ref.update({
+                'completedSwapCount': firestore.Increment(1),
+                'activeSwapCount': firestore.Increment(-1),
+                'updatedAt': firestore.SERVER_TIMESTAMP
+            })
+        
+        return jsonify({
+            'status': 'success', 
+            'message': f'Swap {action} successfully',
+            'redirect': url_for('main.see_request')
+        })
+        
+    except Exception as e:
+        print(f"Error updating swap: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
-    if action == 'Accepted':
-        db.collection('swaps').document(swap_id).update({'status': 'Accepted'})
-    elif action == 'Rejected':
-        db.collection('swaps').document(swap_id).delete()
+# ------------------ API Endpoints ------------------
+@main.route('/api/debug/swaps')
+def debug_swaps():
+    """Debug endpoint to check swap data"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        # Get all swaps for this user (sent and received)
+        sent_swaps = db.collection('swaps').where('fromUserId', '==', current_user_id).stream()
+        received_swaps = db.collection('swaps').where('toUserId', '==', current_user_id).stream()
+        
+        swaps_data = []
+        
+        # Process sent swaps
+        for doc in sent_swaps:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            data['type'] = 'sent'
+            swaps_data.append(data)
+        
+        # Process received swaps
+        for doc in received_swaps:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            data['type'] = 'received'
+            swaps_data.append(data)
+        
+        return jsonify({
+            'user_id': current_user_id,
+            'total_swaps': len(swaps_data),
+            'swaps': swaps_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    return redirect(url_for('main.see_request'))
+@main.route('/api/swaps/<swap_id>', methods=['GET'])
+def get_swap_details(swap_id):
+    """Get detailed swap information"""
+    try:
+        swap_doc = db.collection('swaps').where('swapId', '==', swap_id).limit(1).stream()
+        
+        for doc in swap_doc:
+            swap_data = doc.to_dict()
+            swap_data['id'] = doc.id
+            
+            # Get user details
+            from_user = db.collection('users').document(swap_data['fromUserId']).get()
+            to_user = db.collection('users').document(swap_data['toUserId']).get()
+            
+            swap_data['fromUser'] = from_user.to_dict() if from_user.exists else {}
+            swap_data['toUser'] = to_user.to_dict() if to_user.exists else {}
+            
+            return jsonify({'status': 'success', 'data': swap_data})
+        
+        return jsonify({'status': 'error', 'message': 'Swap not found'}), 404
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
-# NEW ROUTE: Enhanced user search for new fields
+# ------------------ Enhanced Search ------------------
 @main.route('/api/enhanced-search', methods=['GET'])
 def enhanced_search():
     """Enhanced search across all user fields"""
@@ -642,12 +1075,6 @@ def enhanced_search():
                 user.get('about', '').lower(),
                 ' '.join(user.get('offeredSkill', [])).lower(),
                 ' '.join(user.get('requestedSkill', [])).lower(),
-                ' '.join([edu.get('field_of_study', '') for edu in user.get('education', [])]).lower(),
-                ' '.join([edu.get('institution_name', '') for edu in user.get('education', [])]).lower(),
-                ' '.join([exp.get('job_title', '') for exp in user.get('experience', [])]).lower(),
-                ' '.join([exp.get('company', '') for exp in user.get('experience', [])]).lower(),
-                ' '.join([cert.get('name', '') for cert in user.get('certifications', [])]).lower(),
-                ' '.join([skill.get('skill_name', '') for skill in user.get('skills', [])]).lower(),
             ]
             
             # Check if query exists in any search field
@@ -682,14 +1109,6 @@ def enhanced_search():
                     'display_location': display_location
                 }
                 
-                # Add education if available
-                if user.get('education'):
-                    result['education'] = user['education'][:2]  # Show first 2
-                
-                # Add experience if available
-                if user.get('experience'):
-                    result['experience'] = user['experience'][:2]  # Show first 2
-                
                 search_results.append(result)
         
         return jsonify({
@@ -704,15 +1123,14 @@ def enhanced_search():
             'error': str(e)
         }), 500
 
-
-# new 
+# ------------------ Indian Colleges API ------------------
 @main.route('/api/indian-colleges', methods=['GET'])
 def get_indian_colleges():
     """API endpoint to fetch Indian colleges"""
     try:
         query = request.args.get('q', '').strip().lower()
         
-        # Sample list of Indian colleges (you can expand this)
+        # Sample list of Indian colleges
         indian_colleges = [
             "Indian Institute of Technology Bombay",
             "Indian Institute of Technology Delhi",
@@ -764,7 +1182,7 @@ def get_indian_colleges():
         
         return jsonify({
             'status': 'success',
-            'colleges': filtered_colleges[:20]  # Limit to 20 results
+            'colleges': filtered_colleges[:20]
         })
         
     except Exception as e:
@@ -773,7 +1191,7 @@ def get_indian_colleges():
             'error': str(e)
         }), 500
 
-# NEW ROUTE: Save profile with enhanced project links
+# ------------------ Save Profile ------------------
 @main.route('/save-profile', methods=['POST'])
 def save_profile():
     """Save profile data including enhanced project links"""
@@ -804,3 +1222,9 @@ def save_profile():
     except Exception as e:
         print(f"Error saving profile: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ------------------ User Profile Redirect ------------------
+@main.route('/user/<user_id>')
+def view_user_profile(user_id):
+    """Redirect to user profile page"""
+    return redirect(url_for('main.view_swap_profile', user_id=user_id))
