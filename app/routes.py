@@ -1123,7 +1123,7 @@ def enhanced_search():
             'error': str(e)
         }), 500
 
-# ------------------ Indian Colleges API ---------------
+# ------------------ Indian Colleges API ------------------
 @main.route('/api/indian-colleges', methods=['GET'])
 def get_indian_colleges():
     """API endpoint to fetch Indian colleges"""
