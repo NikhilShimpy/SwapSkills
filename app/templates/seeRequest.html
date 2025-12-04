@@ -5,264 +5,127 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Swap Requests | SkillSwap</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/seeRequest.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    /* Enhanced Loading */
-    .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+    /* Additional inline styles for enhanced effects */
+    .futuristic-tooltip {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      transition: opacity 0.5s ease;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      z-index: 10002;
+      opacity: 0;
+      transform: translateX(-50%) translateY(-100%) scale(0.9);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
     }
     
-    .loading-content {
-      text-align: center;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 40px;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-      animation: slideUp 0.6s ease;
+    .futuristic-tooltip.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-100%) scale(1);
     }
     
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    .futuristic-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: #667eea transparent transparent transparent;
     }
     
-    .loading-spinner {
-      width: 60px;
-      height: 60px;
-      border: 4px solid rgba(99, 102, 241, 0.1);
-      border-top-color: #6366f1;
+    .ripple {
+      position: absolute;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
+      background: rgba(255, 255, 255, 0.7);
+      transform: scale(0);
+      animation: ripple 0.6s linear;
+      pointer-events: none;
     }
     
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
     }
     
-    /* Status Pulse Animation */
-    .status-pending .status-indicator {
-      animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-    }
-    
-    /* Card Hover Effects */
-    .request-card {
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .request-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    }
-    
-    /* User Profile Link */
-    .user-profile-link {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      text-decoration: none;
-      color: inherit;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .user-profile-link:hover {
-      opacity: 0.8;
-    }
-    
-    /* Enhanced Status Colors */
-    .status-indicator {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .status-pending {
-      background: rgba(245, 158, 11, 0.1);
-      color: #f59e0b;
-    }
-    
-    .status-accepted {
-      background: rgba(16, 185, 129, 0.1);
-      color: #10b981;
-    }
-    
-    .status-rejected {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
-    }
-    
-    .status-completed {
-      background: rgba(59, 130, 246, 0.1);
-      color: #3b82f6;
-    }
-    
-    .status-cancelled {
-      background: rgba(107, 114, 128, 0.1);
-      color: #6b7280;
-    }
-    
-    /* Enhanced Skill Badges */
-    .skill-badge {
-      padding: 8px 16px;
-      border-radius: 10px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.3s ease;
-    }
-    
-    .skill-badge.primary {
-      background: rgba(99, 102, 241, 0.1);
-      color: #6366f1;
-      border: 1px solid rgba(99, 102, 241, 0.2);
-    }
-    
-    .skill-badge.secondary {
-      background: rgba(16, 185, 129, 0.1);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-    
-    /* Action Buttons */
-    .btn-action {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-width: 100px;
-      justify-content: center;
-    }
-    
-    .btn-action:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    
-    .btn-action.accept {
-      background: linear-gradient(135deg, #10b981, #34d399);
-      color: white;
-    }
-    
-    .btn-action.reject {
-      background: linear-gradient(135deg, #ef4444, #f87171);
-      color: white;
-    }
-    
-    .btn-action.cancel {
-      background: #6b7280;
-      color: white;
-    }
-    
-    .btn-action.complete {
-      background: linear-gradient(135deg, #3b82f6, #60a5fa);
-      color: white;
-    }
-    
-    .btn-action.details {
-      background: #f3f4f6;
-      color: #374151;
-    }
-    
-    .btn-action.schedule {
-      background: linear-gradient(135deg, #f59e0b, #fbbf24);
-      color: white;
-    }
-    
-    .btn-action.message {
+    .results-counter {
+      position: absolute;
+      top: 20px;
+      right: 20px;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
     }
     
-    .btn-action.rate {
-      background: linear-gradient(135deg, #f59e0b, #fbbf24);
-      color: white;
+    .participant-avatar-container {
+      position: relative;
     }
     
-    /* Toast Notifications */
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: white;
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    .participant-status {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .participant-status.online {
+      background: #10b981;
+    }
+    
+    .participant-status.offline {
+      background: #9ca3af;
+    }
+    
+    .participant-actions {
+      margin-top: 10px;
       display: flex;
-      align-items: center;
-      gap: 12px;
-      transform: translateX(120%);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 10001;
-      border-left: 4px solid;
-      max-width: 350px;
+      gap: 10px;
     }
     
-    .toast.show {
-      transform: translateX(0);
+    .quick-actions {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
     }
     
-    .toast-success {
-      border-left-color: #10b981;
+    .reduce-motion * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
     
-    .toast-error {
-      border-left-color: #ef4444;
+    /* Enhanced animations */
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+      50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.5); }
     }
     
-    .toast-warning {
-      border-left-color: #f59e0b;
+    .glowing {
+      animation: glow 2s infinite;
     }
     
-    .toast-info {
-      border-left-color: #3b82f6;
-    }
-    
-    .toast-close {
-      background: none;
-      border: none;
-      color: #9ca3af;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
-      transition: all 0.2s;
-    }
-    
-    .toast-close:hover {
-      background: #f3f4f6;
-      color: #6b7280;
+    /* Particle effects */
+    .particle {
+      pointer-events: none;
+      position: fixed;
+      z-index: 10000;
     }
   </style>
 </head>
@@ -271,8 +134,10 @@
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-content">
       <div class="loading-spinner"></div>
-      <h3>Loading Your Swap Requests</h3>
-      <p>Please wait while we fetch your data...</p>
+      <div class="loading-text">
+        <h3>Loading Your Swap Requests</h3>
+        <p class="loading-subtitle">Preparing your futuristic dashboard...</p>
+      </div>
     </div>
   </div>
 
@@ -287,9 +152,9 @@
         </a>
         <div class="header-title">
           <h1>Swap Requests</h1>
-          <p>Manage your skill exchange requests and invitations</p>
+          <p>Manage your skill exchange requests with futuristic precision</p>
         </div>
-        <div class="user-info-header">
+        <div class="user-info-header" onclick="viewUserProfile('{{ current_user_data.get('user_id', '') }}')">
           <img src="{{ current_user_data.get('photo_url', '/static/default-profile.png') }}" 
                alt="Profile" class="user-avatar-header">
           <span>{{ current_user_data.get('name', 'User') }}</span>
@@ -298,7 +163,7 @@
       
       <!-- Stats Dashboard -->
       <div class="header-stats">
-        <div class="stat-card" onclick="filterByStatus('all')">
+        <div class="stat-card glowing" onclick="filterByStatus('all')">
           <i class="fas fa-exchange-alt"></i>
           <div>
             <span class="stat-number">{{ stats.total if stats else 0 }}</span>
@@ -370,7 +235,7 @@
           
           <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Search by user or skill..." 
+            <input type="text" id="searchInput" placeholder="Search by user, skill, or ID..." 
                    value="{{ request.args.get('q', '') }}">
             <button class="search-clear" id="clearSearch">
               <i class="fas fa-times"></i>
@@ -391,11 +256,13 @@
           <div class="request-card status-{{ request.status|lower }}" 
                data-user="{{ request.userName|lower }}"
                data-skill="{{ request.offeredSkill|lower }} {{ request.requestedSkill|lower }}"
-               data-status="{{ request.status|lower }}">
+               data-status="{{ request.status|lower }}"
+               tabindex="0">
             
             <!-- Card Header with User Info -->
             <div class="card-header">
-              <div class="user-profile" onclick="viewUserProfile('{{ request.userId }}')">
+              <div class="user-profile" onclick="viewUserProfile('{{ request.userId }}')" 
+                   data-tooltip="View {{ request.userName }}'s profile">
                 <img src="{{ request.userPhoto if request.userPhoto else '/static/default-profile.png' }}" 
                      alt="{{ request.userName }}" class="user-avatar"
                      onerror="this.src='/static/default-profile.png'">
@@ -483,10 +350,10 @@
               {% if request.message %}
               <div class="request-message">
                 <i class="fas fa-quote-left"></i>
-                <p>"{{ request.message|truncate(100) }}"</p>
-                {% if request.message|length > 100 %}
+                <p>"{{ request.message|truncate(120) }}"</p>
+                {% if request.message|length > 120 %}
                 <button class="btn-view-more" onclick="showFullMessage('{{ request.id }}')">
-                  Read more
+                  Read more <i class="fas fa-chevron-right"></i>
                 </button>
                 {% endif %}
               </div>
@@ -701,37 +568,9 @@
 
     // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('Swap Requests Page Initialized');
-      
-      // Hide loading overlay
-      setTimeout(() => {
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        if (loadingOverlay) {
-          loadingOverlay.style.opacity = '0';
-          loadingOverlay.style.pointerEvents = 'none';
-          setTimeout(() => {
-            loadingOverlay.style.display = 'none';
-          }, 300);
-        }
-        
-        // Animate cards
-        animateCards();
-      }, 500);
+      console.log('🚀 Futuristic Swap Requests Page Initialized');
       
       // Initialize event listeners
-      initializeEventListeners();
-    });
-    
-    function animateCards() {
-      const cards = document.querySelectorAll('.request-card');
-      cards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
-        card.classList.add('animate-in');
-      });
-    }
-    
-    function initializeEventListeners() {
-      // Status filter
       const statusFilter = document.getElementById('statusFilter');
       if (statusFilter) {
         statusFilter.addEventListener('change', function() {
@@ -742,7 +581,7 @@
         });
       }
       
-      // Search input
+      // Search input with enhanced debounce
       const searchInput = document.getElementById('searchInput');
       if (searchInput) {
         searchInput.addEventListener('input', debounce(filterRequests, 300));
@@ -763,195 +602,25 @@
         confirmBtn.addEventListener('click', executeConfirmedAction);
       }
       
-      // Close modals on escape key
+      // Keyboard shortcuts
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
           closeAllModals();
         }
-      });
-    }
-    
-    function filterRequests() {
-      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      const cards = document.querySelectorAll('.request-card');
-      
-      cards.forEach(card => {
-        const userName = card.dataset.user || '';
-        const skills = card.dataset.skill || '';
-        
-        const matches = searchTerm === '' || 
-                       userName.includes(searchTerm) || 
-                       skills.includes(searchTerm);
-        
-        if (matches) {
-          card.style.display = 'block';
-          setTimeout(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-          }, 10);
-        } else {
-          card.style.opacity = '0';
-          card.style.transform = 'translateY(20px)';
-          setTimeout(() => {
-            card.style.display = 'none';
-          }, 300);
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+          e.preventDefault();
+          searchInput.focus();
         }
       });
-    }
+      
+      // Add data-tooltip attributes dynamically
+      document.querySelectorAll('.btn-action').forEach(btn => {
+        const text = btn.textContent.trim();
+        btn.setAttribute('data-tooltip', text);
+      });
+    });
     
-    function refreshRequests() {
-      const view = document.querySelector('.view-tab.active').dataset.view;
-      const status = document.getElementById('statusFilter').value || 'all';
-      const search = document.getElementById('searchInput').value || '';
-      
-      showToast('Refreshing requests...', 'info');
-      
-      setTimeout(() => {
-        window.location.href = `/see-request?view=${view}&status=${status}&q=${encodeURIComponent(search)}`;
-      }, 500);
-    }
-    
-    function showRequestDetails(swapId) {
-      showLoading(true);
-      
-      fetch(`/api/swaps/${swapId}`)
-        .then(response => {
-          if (!response.ok) throw new Error('Network response was not ok');
-          return response.json();
-        })
-        .then(data => {
-          if (data.status === 'success') {
-            populateDetailsModal(data.data);
-            showModal('detailsModal');
-          } else {
-            showToast('Could not load request details', 'error');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          showToast('Network error. Please try again.', 'error');
-        })
-        .finally(() => {
-          showLoading(false);
-        });
-    }
-    
-    function populateDetailsModal(swapData) {
-      const modalBody = document.getElementById('detailsModalBody');
-      
-      // Format dates
-      const createdAt = swapData.createdAt ? new Date(swapData.createdAt.seconds * 1000) : new Date();
-      const updatedAt = swapData.updatedAt ? new Date(swapData.updatedAt.seconds * 1000) : null;
-      
-      modalBody.innerHTML = `
-        <div class="details-content">
-          <div class="detail-section">
-            <h4><i class="fas fa-users"></i> Participants</h4>
-            <div class="participants-grid">
-              <div class="participant">
-                <img src="${swapData.metadata?.fromUserPhoto || '/static/default-profile.png'}" 
-                     alt="${swapData.metadata?.fromUserName || 'Sender'}" class="participant-avatar">
-                <div class="participant-info">
-                  <strong>From:</strong>
-                  <h5>${swapData.metadata?.fromUserName || 'Unknown User'}</h5>
-                  <small>Request Sender</small>
-                </div>
-              </div>
-              <div class="participant">
-                <img src="${swapData.metadata?.toUserPhoto || '/static/default-profile.png'}" 
-                     alt="${swapData.metadata?.toUserName || 'Receiver'}" class="participant-avatar">
-                <div class="participant-info">
-                  <strong>To:</strong>
-                  <h5>${swapData.metadata?.toUserName || 'Unknown User'}</h5>
-                  <small>Request Receiver</small>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="detail-section">
-            <h4><i class="fas fa-exchange-alt"></i> Swap Details</h4>
-            <div class="swap-info-grid">
-              <div class="info-item">
-                <span class="info-label">Offered Skill:</span>
-                <span class="info-value skill-badge primary">
-                  <i class="fas fa-gift"></i>
-                  ${swapData.offeredSkill || 'Not specified'}
-                </span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Requested Skill:</span>
-                <span class="info-value skill-badge secondary">
-                  <i class="fas fa-bullseye"></i>
-                  ${swapData.requestedSkill || 'Not specified'}
-                </span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Status:</span>
-                <span class="info-value status-${swapData.status.toLowerCase()}">
-                  ${swapData.status}
-                </span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Request ID:</span>
-                <span class="info-value">${swapData.swapId || swapData.id}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Created:</span>
-                <span class="info-value">${createdAt.toLocaleString()}</span>
-              </div>
-              ${updatedAt ? `
-              <div class="info-item">
-                <span class="info-label">Last Updated:</span>
-                <span class="info-value">${updatedAt.toLocaleString()}</span>
-              </div>
-              ` : ''}
-            </div>
-          </div>
-          
-          ${swapData.message ? `
-          <div class="detail-section">
-            <h4><i class="fas fa-envelope"></i> Message</h4>
-            <div class="message-full">
-              <p>${swapData.message}</p>
-            </div>
-          </div>
-          ` : ''}
-          
-          <div class="detail-section">
-            <h4><i class="fas fa-history"></i> Timeline</h4>
-            <div class="timeline">
-              <div class="timeline-item">
-                <div class="timeline-dot primary"></div>
-                <div class="timeline-content">
-                  <strong>Request Created</strong>
-                  <span>${createdAt.toLocaleString()}</span>
-                </div>
-              </div>
-              ${updatedAt ? `
-              <div class="timeline-item">
-                <div class="timeline-dot success"></div>
-                <div class="timeline-content">
-                  <strong>Status Updated</strong>
-                  <span>${updatedAt.toLocaleString()}</span>
-                </div>
-              </div>
-              ` : ''}
-              <div class="timeline-item">
-                <div class="timeline-dot info"></div>
-                <div class="timeline-content">
-                  <strong>Current Status</strong>
-                  <span class="status-${swapData.status.toLowerCase()}">
-                    ${swapData.status.charAt(0).toUpperCase() + swapData.status.slice(1)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    
+    // Enhanced updateSwapStatus with confirmation
     function updateSwapStatus(swapId, action) {
       currentSwapId = swapId;
       currentAction = action;
@@ -986,19 +655,19 @@
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success') {
-          showToast(data.message, 'success');
+          showNotification('✅ ' + data.message, 'success');
           // Reload page after delay
           setTimeout(() => {
             window.location.reload();
           }, 1500);
         } else {
-          showToast(data.message, 'error');
+          showNotification('❌ ' + data.message, 'error');
           showLoading(false);
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        showToast('Network error. Please try again.', 'error');
+        showNotification('❌ Network error. Please try again.', 'error');
         showLoading(false);
       });
     }
@@ -1020,94 +689,6 @@
         });
     }
     
-    function viewUserProfile(userId) {
-      window.location.href = `/swap/${userId}`;
-    }
-    
-    function showModal(modalId) {
-      document.getElementById(modalId).classList.add('active');
-      document.body.style.overflow = 'hidden';
-    }
-    
-    function closeModal(modalId) {
-      document.getElementById(modalId).classList.remove('active');
-      document.body.style.overflow = 'auto';
-    }
-    
-    function closeAllModals() {
-      document.querySelectorAll('.modal-overlay').forEach(modal => {
-        modal.classList.remove('active');
-      });
-      document.body.style.overflow = 'auto';
-    }
-    
-    function showLoading(show) {
-      const loadingOverlay = document.getElementById('loadingOverlay');
-      if (loadingOverlay) {
-        if (show) {
-          loadingOverlay.style.display = 'flex';
-          setTimeout(() => {
-            loadingOverlay.style.opacity = '1';
-          }, 10);
-        } else {
-          loadingOverlay.style.opacity = '0';
-          setTimeout(() => {
-            loadingOverlay.style.display = 'none';
-          }, 300);
-        }
-      }
-    }
-    
-    function showToast(message, type = 'info') {
-      const toastContainer = document.getElementById('toastContainer');
-      const toast = document.createElement('div');
-      toast.className = `toast toast-${type}`;
-      
-      const icons = {
-        'success': 'check-circle',
-        'error': 'exclamation-circle',
-        'warning': 'exclamation-triangle',
-        'info': 'info-circle'
-      };
-      
-      toast.innerHTML = `
-        <i class="fas fa-${icons[type] || 'info-circle'}"></i>
-        <span>${message}</span>
-        <button class="toast-close" onclick="this.parentElement.remove()">
-          <i class="fas fa-times"></i>
-        </button>
-      `;
-      
-      toastContainer.appendChild(toast);
-      
-      // Show toast
-      setTimeout(() => {
-        toast.classList.add('show');
-      }, 10);
-      
-      // Auto remove after 5 seconds
-      setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => {
-          if (toast.parentElement) {
-            toast.remove();
-          }
-        }, 300);
-      }, 5000);
-    }
-    
-    function debounce(func, wait) {
-      let timeout;
-      return function executedFunction(...args) {
-        const later = () => {
-          clearTimeout(timeout);
-          func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-      };
-    }
-    
     // Make functions globally available
     window.filterByStatus = function(status) {
       const view = document.querySelector('.view-tab.active').dataset.view;
@@ -1115,18 +696,23 @@
     };
     
     window.scheduleSwap = function(id) { 
-      showToast('Schedule feature coming soon!', 'info');
+      showNotification('⏰ Schedule feature coming soon!', 'info');
     };
     
     window.messageUser = function(id) { 
-      showToast('Messaging feature coming soon!', 'info');
+      showNotification('💬 Messaging feature coming soon!', 'info');
     };
     
     window.rateSwap = function(id) { 
-      showToast('Rating feature coming soon!', 'info');
+      showNotification('⭐ Rating feature coming soon!', 'info');
     };
     
-    window.viewUserProfile = viewUserProfile;
+    window.viewUserProfile = function(userId) {
+      window.location.href = `/swap/${userId}`;
+    };
+    
+    window.updateSwapStatus = updateSwapStatus;
+    window.showFullMessage = showFullMessage;
   </script>
 </body>
 </html>
