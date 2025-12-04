@@ -14,7 +14,7 @@ def generate_random_rating():
     value = round(random.uniform(1, 5), 1)
     return int(value) if value.is_integer() else value
 
-# ------------------ Landing Page ----------------
+# ------------------ Landing Page --------------
 @main.route('/')
 def landing():
     """Landing page for non-authenticated users"""
