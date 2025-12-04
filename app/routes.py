@@ -1223,7 +1223,7 @@ def save_profile():
         print(f"Error saving profile: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-# ------------------ User Profile Redirect 
+# User Profile Redirect 
 @main.route('/user/<user_id>')
 def view_user_profile(user_id):
     """Redirect to user profile page"""
