@@ -1,6 +1,6 @@
 from app import create_app, socketio
-app = create_app()   # Flask app must be exposed as `app`
+
+app, socketio = create_app()   # unpack both
 
 if __name__ == "__main__":
-    app.run(debug=True)
-
+    socketio.run(app, debug=True)
