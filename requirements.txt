@@ -1,6 +1,5 @@
 Flask==3.1.0
 flask-socketio==5.3.6
-eventlet==0.36.1
 gunicorn==23.0.0
 firebase-admin==6.9.0
 flask-cors==4.0.0
@@ -8,3 +7,5 @@ Flask-Session==0.8.0
 Flask-WTF==1.2.2
 python-dotenv==1.0.1
 requests==2.32.3
+gevent==24.2.1
+gevent-websocket==0.10.1
