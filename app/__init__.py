@@ -1,4 +1,6 @@
 # __init__.py
+import os
+
 from flask import Flask
 from .routes import main
 from .firebase_config import db, bucket
