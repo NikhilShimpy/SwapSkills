@@ -1,7 +1,7 @@
-from app import create_app, socketio
+# run.py (only for local dev)
+from app import create_app
 
 app = create_app()
 
 if __name__ == "__main__":
-    # Use socketio.run() for proper SocketIO server
-    socketio.run(app, debug=True)
+    app.run(debug=True)
