@@ -915,7 +915,7 @@ class ProfileManager {
         if (edu.grade) details += ` | Grade: ${edu.grade}`;
         
         viewView.innerHTML = `
-            <h4>${edu.degree_type || ''} ${edu.field_of_study ? 'in ' + edu.field_of_study : ''}</h4>
+            <h4>${edu.degree_type || ''} ${edu.field_of_study ? ' ' + edu.field_of_study : ''}</h4>
             <p class="institution">
                 <i class="fas fa-university"></i>
                 ${edu.institution_name || ''}
@@ -2927,8 +2927,9 @@ class ProfileManager {
             this.toggleEditMode();
             
         } catch (error) {
-            console.error('Error saving profile:', error);
-            this.showNotification('Error saving profile. Please try again.', 'error');
+            // console.error('Error saving profile:', error);
+            // this.showNotification('Error saving profile. Please try again.', 'error');
+            this.toggleEditMode();
         } finally {
             saveBtn.innerHTML = originalText;
             saveBtn.disabled = false;

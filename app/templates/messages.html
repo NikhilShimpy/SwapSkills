@@ -1,0 +1,244 @@
+<!-- templates/messages.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - SkillSwap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/messages.css') }}">
+    <style>
+        /* Ensure body has no scroll */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        /* Global notifications */
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 300px;
+        }
+        
+        .notification.error {
+            background: #f44336;
+        }
+        
+        .notification.info {
+            background: #2196F3;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .loading-overlay i {
+            font-size: 40px;
+            color: #667eea;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <i class="fas fa-spinner"></i>
+        <p>Loading...</p>
+    </div>
+
+    <!-- Messages Container -->
+    <div class="messages-container">
+        <!-- Left Sidebar - Conversations List -->
+        <div class="conversations-sidebar">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header">
+                <div class="user-profile">
+                    <div class="profile-avatar">
+                        <img src="{{ current_user_data.photo_url or '/static/default-profile.png' }}" 
+                             alt="{{ current_user_data.name }}"
+                             onerror="this.src='/static/default-profile.png'">
+                    </div>
+                    <div class="profile-info">
+                        <h3>{{ current_user_data.name }}</h3>
+                        <p class="status" id="userStatus">Active now</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" id="newChatBtn" title="New chat">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Box -->
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchConversations" placeholder="Search conversations...">
+            </div>
+
+            <!-- Conversations List -->
+            <div class="conversations-list" id="conversationsList">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading conversations...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Chat Area -->
+        <div class="chat-area">
+            <!-- Empty State -->
+            <div class="empty-chat-state" id="emptyChatState">
+                <div class="empty-chat-icon">
+                    <i class="fas fa-comment-dots"></i>
+                </div>
+                <h2>Your Messages</h2>
+                <p>Select a conversation or search for users to start chatting</p>
+                <button class="primary-btn" id="startNewChatBtn">
+                    <i class="fas fa-search"></i> Search Users
+                </button>
+            </div>
+
+            <!-- Active Chat -->
+            <div class="active-chat" id="activeChat" style="display: none;">
+                <!-- Chat Header -->
+                <div class="chat-header">
+                    <div class="chat-user-info">
+                        <div class="user-avatar-small">
+                            <img id="chatUserAvatar" src="/static/default-profile.png" alt="User">
+                        </div>
+                        <div class="user-details">
+                            <h3 id="chatUserName">User Name</h3>
+                            <p id="chatUserStatus">Online</p>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="icon-btn" id="viewProfileBtn" title="View profile">
+                            <i class="fas fa-user"></i>
+                        </button>
+                        <div class="dropdown">
+                            <button class="icon-btn" id="moreOptionsBtn" title="More options">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <button class="dropdown-item" id="clearChatBtn">
+                                    <i class="fas fa-trash"></i> Clear Chat
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Container -->
+                <div class="messages-wrapper">
+                    <div class="messages-container-inner" id="messagesContainer">
+                        <div class="no-messages" id="noMessages">
+                            <p>No messages yet. Start the conversation!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Input -->
+                <div class="message-input-area">
+                    <div class="input-wrapper">
+                        <button class="input-action-btn" id="attachBtn">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <div class="message-input-container">
+                            <textarea 
+                                id="messageInput" 
+                                class="message-input" 
+                                placeholder="Type a message..."
+                                rows="1"
+                            ></textarea>
+                        </div>
+                        <button class="send-btn" id="sendMessageBtn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDS8tGustKzem7u8U5ntcLMimgLJC_fQWI",
+            authDomain: "skillswap-21922.firebaseapp.com",
+            projectId: "skillswap-21922",
+            storageBucket: "skillswap-21922.firebasestorage.app",
+            messagingSenderId: "942449711732",
+            appId: "1:942449711732:web:ed1ac7c996deb34b998f21",
+            measurementId: "G-DL61KXD2YR"
+        };
+        
+        // Initialize Firebase if not already initialized
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // Current user data
+        const CURRENT_USER_ID = "{{ current_user_id }}";
+        const CURRENT_USER_NAME = "{{ current_user_data.name }}";
+        const CURRENT_USER_PHOTO = "{{ current_user_data.photo_url or '/static/default-profile.png' }}";
+    </script>
+    
+    <script src="{{ url_for('static', filename='js/messages.js') }}"></script>
+</body>
+</html>

@@ -24,7 +24,7 @@
       <div class="header-actions">
         <a href="{{ url_for('main.see_request') }}" class="btn-swap">
           <i class="fas fa-exchange-alt"></i> Swap Requests
-          <span class="notification-badge" id="requestBadge">0</span>
+          
         </a>
         <a href="/app" class="btn-home">
           <i class="fas fa-home"></i> Home
@@ -130,7 +130,7 @@
               </div>
 
               <!-- Languages Section -->
-              <div class="form-group">
+               <div class="form-group">
                 <label>Languages</label>
                 <div id="languagesContainer">
                   {% if user_data.languages %}
@@ -159,6 +159,7 @@
               </div>
             </div>
           </div>
+          
 
           <!-- Skills & Expertise Card -->
           <div class="card">

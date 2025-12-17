@@ -1,0 +1,206 @@
+<!-- templates/chat.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with {{ target_user_data.name }} - SkillSwap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+</head>
+<body class="chat-page">
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <div class="logo-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <h1 class="logo">SkillSwap</h1>
+            </div>
+            
+            <nav class="nav-links">
+                <a href="{{ url_for('main.app') }}" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="{{ url_for('main.messages') }}" class="nav-link">
+                    <i class="fas fa-comments"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="{{ url_for('main.see_request') }}" class="nav-link">
+                    <i class="fas fa-handshake"></i>
+                    <span>Swap Requests</span>
+                </a>
+                <a href="{{ url_for('main.profile') }}" class="nav-link">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="{{ url_for('main.logout') }}" class="nav-link login-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </nav>
+
+            <!-- Mobile Menu Button -->
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-content">
+            <a href="{{ url_for('main.app') }}" class="mobile-nav-link">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="{{ url_for('main.messages') }}" class="mobile-nav-link">
+                <i class="fas fa-comments"></i>
+                <span>Messages</span>
+            </a>
+            <a href="{{ url_for('main.see_request') }}" class="mobile-nav-link">
+                <i class="fas fa-handshake"></i>
+                <span>Swap Requests</span>
+            </a>
+            <a href="{{ url_for('main.profile') }}" class="mobile-nav-link">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+            <a href="{{ url_for('main.logout') }}" class="mobile-nav-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <main class="chat-container">
+        <div class="back-to-messages">
+            <a href="{{ url_for('main.messages') }}" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                Back to Messages
+            </a>
+        </div>
+        
+        <div class="chat-window">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="chat-user-info">
+                    <a href="{{ url_for('main.view_swap_profile', user_id=target_user_id) }}" class="user-link">
+                        <div class="user-avatar">
+                            <img src="{{ target_user_data.photo_url or '/static/default-profile.png' }}" 
+                                 alt="{{ target_user_data.name }}">
+                        </div>
+                        <div class="user-details">
+                            <h3 id="chatUserName">{{ target_user_data.name }}</h3>
+                            <p id="chatUserStatus">Online</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="chat-actions">
+                    <a href="{{ url_for('main.view_swap_profile', user_id=target_user_id) }}" 
+                       class="chat-action-btn" title="View Profile">
+                        <i class="fas fa-user"></i>
+                    </a>
+                    <div class="dropdown">
+                        <button class="chat-action-btn" id="moreActionsBtn" title="More options">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <button class="dropdown-item" id="clearChatBtn">
+                                <i class="fas fa-trash"></i> Clear Chat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="messages-area">
+                <div class="messages-container" id="messagesContainer">
+                    <div class="loading-messages" id="loadingMessages">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading messages...</p>
+                    </div>
+                    <div class="no-messages" id="noMessages" style="display: none;">
+                        <p>No messages yet. Start the conversation!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="message-input-container">
+                <div class="input-wrapper">
+                    <button class="input-action-btn" id="attachBtn">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <div class="message-input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            class="message-input" 
+                            placeholder="Type a message..."
+                            rows="1"
+                        ></textarea>
+                    </div>
+                    <div class="send-button-container">
+                        <button id="sendMessageBtn" class="send-message-btn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDS8tGustKzem7u8U5ntcLMimgLJC_fQWI",
+            authDomain: "skillswap-21922.firebaseapp.com",
+            projectId: "skillswap-21922",
+            storageBucket: "skillswap-21922.firebasestorage.app",
+            messagingSenderId: "942449711732",
+            appId: "1:942449711732:web:ed1ac7c996deb34b998f21",
+            measurementId: "G-DL61KXD2YR"
+        };
+        
+        // Initialize Firebase if not already initialized
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // Chat specific variables
+        const targetUserId = "{{ target_user_id }}";
+        const targetUserName = "{{ target_user_data.name }}";
+        const targetUserPhoto = "{{ target_user_data.photo_url or '/static/default-profile.png' }}";
+        let currentUserId = null;
+        let messagesListener = null;
+        
+        // DOM elements
+        const messagesContainer = document.getElementById('messagesContainer');
+        const loadingMessages = document.getElementById('loadingMessages');
+        const noMessages = document.getElementById('noMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const attachBtn = document.getElementById('attachBtn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const moreActionsBtn = document.getElementById('moreActionsBtn');
+    </script>
+    
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>

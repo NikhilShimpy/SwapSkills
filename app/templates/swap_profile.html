@@ -162,9 +162,9 @@
                 <span>Request Swap</span>
               </a>
               <button class="message-btn" onclick="handleMessageClick()">
-                <i class="fas fa-envelope"></i>
-                <span>Message</span>
-              </button>
+    <i class="fas fa-envelope"></i>
+    <span>Message</span>
+</button>
             </div>
           </div>
           
@@ -249,27 +249,6 @@
             {% endif %}
 
             <!-- Additional Skills -->
-            {% if user_data.skills %}
-            <section class="profile-section">
-              <div class="section-header">
-                <div class="section-icon">
-                  <i class="fas fa-tools"></i>
-                </div>
-                <h2>Additional Skills</h2>
-              </div>
-              <div class="skills-grid">
-                {% for skill in user_data.skills %}
-                <div class="skill-card">
-                  <div class="skill-icon">
-                    <i class="fas fa-star"></i>
-                  </div>
-                  <span class="skill-name">{{ skill }}</span>
-                </div>
-                {% endfor %}
-              </div>
-            </section>
-            {% endif %}
-
             <!-- Languages -->
             {% if user_data.languages %}
             <section class="profile-section">
@@ -279,22 +258,26 @@
                 </div>
                 <h2>Languages</h2>
               </div>
+
               <div class="languages-list">
-                {% for language in user_data.languages %}
+                {% for lang in user_data.languages %}
                 <div class="language-item">
-                  <span class="language-name">{{ language }}</span>
+                  <span class="language-name">{{ lang.language }}</span>
+
                   <div class="language-proficiency">
-                    <div class="proficiency-dot active"></div>
-                    <div class="proficiency-dot active"></div>
-                    <div class="proficiency-dot active"></div>
-                    <div class="proficiency-dot"></div>
-                    <div class="proficiency-dot"></div>
+                    {% set level = lang.proficiency %}
+                    <div class="proficiency-dot {% if level in ['Beginner','Intermediate','Fluent','Native'] %}active{% endif %}"></div>
+                    <div class="proficiency-dot {% if level in ['Intermediate','Fluent','Native'] %}active{% endif %}"></div>
+                    <div class="proficiency-dot {% if level in ['Fluent','Native'] %}active{% endif %}"></div>
+                    <div class="proficiency-dot {% if level == 'Native' %}active{% endif %}"></div>
+                    <div class="proficiency-dot {% if level == 'Native' %}active{% endif %}"></div>
                   </div>
                 </div>
                 {% endfor %}
               </div>
             </section>
             {% endif %}
+
           </div>
 
           <!-- Right Column -->
@@ -702,5 +685,14 @@
       }
     });
   </script>
+
+  <!-- new message feature  -->
+<!-- In swap_profile.html, update the message button -->
+<script>
+function handleMessageClick() {
+    // Redirect to chat page with this user
+    window.location.href = `/chat/{{ target_user_id }}`;
+}
+</script>
 </body>
 </html>

@@ -1228,3 +1228,911 @@ def save_profile():
 def view_user_profile(user_id):
     """Redirect to user profile page"""
     return redirect(url_for('main.view_swap_profile', user_id=user_id))
+
+# ------------------ Message Routes ------------------
+@main.route('/messages')
+def messages():
+    """Messages inbox page"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return redirect(url_for('main.login'))
+    
+    # Get current user data
+    current_user_doc = db.collection('users').document(current_user_id).get()
+    current_user_data = current_user_doc.to_dict() if current_user_doc.exists else {
+        'name': 'User',
+        'photo_url': '/static/default-profile.png'
+    }
+    
+    return render_template(
+        'messages.html',
+        current_user_data=current_user_data,
+        current_user_id=current_user_id
+    )
+
+@main.route('/chat/<user_id>')
+def chat(user_id):
+    """Individual chat page"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return redirect(url_for('main.login'))
+    
+    # Get current user data
+    current_user_doc = db.collection('users').document(current_user_id).get()
+    current_user_data = current_user_doc.to_dict() if current_user_doc.exists else {
+        'name': 'User',
+        'photo_url': '/static/default-profile.png'
+    }
+    
+    # Get target user data
+    target_user_doc = db.collection('users').document(user_id).get()
+    target_user_data = target_user_doc.to_dict() if target_user_doc.exists else None
+    
+    if not target_user_data:
+        return "<h2>User not found</h2>", 404
+    
+    return render_template(
+        'chat.html',
+        current_user_data=current_user_data,
+        target_user_data=target_user_data,
+        target_user_id=user_id,
+        current_user_id=current_user_id
+    )
+
+@main.route('/api/conversations')
+def api_conversations_v2():
+    """Get all conversations for current user"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        # Get distinct conversations by querying messages
+        sent_messages_ref = db.collection('messages').where('senderId', '==', current_user_id)
+        received_messages_ref = db.collection('messages').where('receiverId', '==', current_user_id)
+        
+        sent_messages = sent_messages_ref.stream()
+        received_messages = received_messages_ref.stream()
+        
+        # Dictionary to store conversations with other users
+        conversations = {}
+        
+        # Process sent messages
+        for msg in sent_messages:
+            msg_data = msg.to_dict()
+            receiver_id = msg_data.get('receiverId')
+            
+            if not receiver_id or receiver_id == current_user_id:
+                continue
+            
+            # Get receiver info if not already fetched
+            if receiver_id not in conversations:
+                receiver_doc = db.collection('users').document(receiver_id).get()
+                if receiver_doc.exists:
+                    receiver_data = receiver_doc.to_dict()
+                    
+                    # Count unread messages
+                    unread_query = db.collection('messages').where('senderId', '==', receiver_id)\
+                                             .where('receiverId', '==', current_user_id)\
+                                             .where('read', '==', False)\
+                                             .stream()
+                    unread_count = len(list(unread_query))
+                    
+                    conversations[receiver_id] = {
+                        'user_id': receiver_id,
+                        'user_name': receiver_data.get('name', 'Unknown'),
+                        'user_photo': receiver_data.get('photo_url', '/static/default-profile.png'),
+                        'last_message': msg_data.get('content', ''),
+                        'timestamp': msg_data.get('timestamp'),
+                        'is_sent_by_me': True,
+                        'unread_count': unread_count
+                    }
+            else:
+                # Update if this message is newer
+                conv = conversations[receiver_id]
+                msg_time = msg_data.get('timestamp')
+                conv_time = conv.get('timestamp')
+                
+                if msg_time and conv_time:
+                    if hasattr(msg_time, 'seconds') and hasattr(conv_time, 'seconds'):
+                        if msg_time.seconds > conv_time.seconds:
+                            conv['last_message'] = msg_data.get('content', '')
+                            conv['timestamp'] = msg_time
+                            conv['is_sent_by_me'] = True
+        
+        # Process received messages
+        for msg in received_messages:
+            msg_data = msg.to_dict()
+            sender_id = msg_data.get('senderId')
+            
+            if not sender_id or sender_id == current_user_id:
+                continue
+            
+            # Get sender info if not already fetched
+            if sender_id not in conversations:
+                sender_doc = db.collection('users').document(sender_id).get()
+                if sender_doc.exists:
+                    sender_data = sender_doc.to_dict()
+                    
+                    # Count unread messages for this conversation
+                    unread_query = db.collection('messages').where('senderId', '==', sender_id)\
+                                             .where('receiverId', '==', current_user_id)\
+                                             .where('read', '==', False)\
+                                             .stream()
+                    unread_count = len(list(unread_query))
+                    
+                    conversations[sender_id] = {
+                        'user_id': sender_id,
+                        'user_name': sender_data.get('name', 'Unknown'),
+                        'user_photo': sender_data.get('photo_url', '/static/default-profile.png'),
+                        'last_message': msg_data.get('content', ''),
+                        'timestamp': msg_data.get('timestamp'),
+                        'is_sent_by_me': False,
+                        'unread_count': unread_count
+                    }
+            else:
+                # Update if this message is newer
+                conv = conversations[sender_id]
+                msg_time = msg_data.get('timestamp')
+                conv_time = conv.get('timestamp')
+                
+                if msg_time and conv_time:
+                    if hasattr(msg_time, 'seconds') and hasattr(conv_time, 'seconds'):
+                        if msg_time.seconds > conv_time.seconds:
+                            conv['last_message'] = msg_data.get('content', '')
+                            conv['timestamp'] = msg_time
+                            conv['is_sent_by_me'] = False
+        
+        # Convert to list and sort by timestamp
+        conversations_list = list(conversations.values())
+        
+        # Format timestamps and sort
+        for conv in conversations_list:
+            timestamp = conv.get('timestamp')
+            if timestamp:
+                if hasattr(timestamp, 'to_date'):
+                    dt = timestamp.to_date()
+                elif hasattr(timestamp, 'seconds'):
+                    dt = datetime.fromtimestamp(timestamp.seconds)
+                else:
+                    dt = datetime.now()
+                
+                # Store datetime for sorting
+                conv['raw_timestamp'] = dt
+                
+                # Format for display
+                now = datetime.now()
+                time_diff = now - dt
+                
+                if time_diff.days == 0:
+                    conv['timestamp_formatted'] = dt.strftime('%I:%M %p')
+                elif time_diff.days == 1:
+                    conv['timestamp_formatted'] = 'Yesterday'
+                elif time_diff.days < 7:
+                    conv['timestamp_formatted'] = dt.strftime('%A')
+                else:
+                    conv['timestamp_formatted'] = dt.strftime('%b %d')
+            else:
+                conv['raw_timestamp'] = datetime.now()
+                conv['timestamp_formatted'] = 'Recently'
+            
+            # Truncate last message
+            last_message = conv['last_message']
+            if len(last_message) > 40:
+                conv['last_message'] = last_message[:37] + '...'
+        
+        # Sort by timestamp (newest first)
+        conversations_list.sort(key=lambda x: x.get('raw_timestamp', datetime.now()), reverse=True)
+        
+        return jsonify({
+            'status': 'success',
+            'conversations': conversations_list
+        })
+        
+    except Exception as e:
+        print(f"Error fetching conversations: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/messages/<user_id>')
+def api_messages_v2(user_id):
+    """Get messages between current user and target user"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        # Get messages where current user is sender and target is receiver OR vice versa
+        messages_query = db.collection('messages')\
+            .where('senderId', 'in', [current_user_id, user_id])\
+            .where('receiverId', 'in', [current_user_id, user_id])\
+            .order_by('timestamp', direction=firestore.Query.ASCENDING)\
+            .stream()
+        
+        messages = []
+        for doc in messages_query:
+            message_data = doc.to_dict()
+            message_data['id'] = doc.id
+            
+            # Convert timestamp for frontend
+            timestamp = message_data.get('timestamp')
+            if timestamp:
+                if hasattr(timestamp, 'to_date'):
+                    dt = timestamp.to_date()
+                elif hasattr(timestamp, 'seconds'):
+                    dt = datetime.fromtimestamp(timestamp.seconds)
+                else:
+                    dt = datetime.now()
+                
+                message_data['timestamp'] = dt.isoformat()
+                message_data['time_formatted'] = dt.strftime('%I:%M %p')
+                message_data['date_formatted'] = dt.strftime('%b %d, %Y')
+                message_data['datetime'] = dt
+            
+            messages.append(message_data)
+        
+        # Mark messages as read
+        unread_query = db.collection('messages')\
+            .where('senderId', '==', user_id)\
+            .where('receiverId', '==', current_user_id)\
+            .where('read', '==', False)\
+            .stream()
+        
+        batch = db.batch()
+        for doc in unread_query:
+            doc_ref = db.collection('messages').document(doc.id)
+            batch.update(doc_ref, {
+                'read': True,
+                'readAt': firestore.SERVER_TIMESTAMP
+            })
+        
+        if batch._write_pbs:  # Only commit if there are updates
+            batch.commit()
+        
+        # Get user info
+        user_doc = db.collection('users').document(user_id).get()
+        user_data = user_doc.to_dict() if user_doc.exists else {}
+        
+        return jsonify({
+            'status': 'success',
+            'messages': messages,
+            'user_info': {
+                'name': user_data.get('name', 'Unknown'),
+                'photo_url': user_data.get('photo_url', '/static/default-profile.png'),
+                'user_id': user_id
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error fetching messages: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/send-message', methods=['POST'])
+def api_send_message_v2():
+    """Send a new message"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        data = request.get_json()
+        receiver_id = data.get('receiverId')
+        content = data.get('content', '').strip()
+        
+        if not receiver_id:
+            return jsonify({'status': 'error', 'message': 'Receiver ID is required'}), 400
+        
+        if not content:
+            return jsonify({'status': 'error', 'message': 'Message content is required'}), 400
+        
+        # Get sender info
+        sender_doc = db.collection('users').document(current_user_id).get()
+        sender_data = sender_doc.to_dict() if sender_doc.exists else {}
+        
+        # Get receiver info
+        receiver_doc = db.collection('users').document(receiver_id).get()
+        receiver_data = receiver_doc.to_dict() if receiver_doc.exists else {}
+        
+        # Create message document
+        message_data = {
+            'senderId': current_user_id,
+            'receiverId': receiver_id,
+            'content': content,
+            'timestamp': firestore.SERVER_TIMESTAMP,
+            'read': False,
+            'type': 'text',
+            'senderName': sender_data.get('name', 'Unknown'),
+            'receiverName': receiver_data.get('name', 'Unknown')
+        }
+        
+        # Add to Firestore
+        message_ref = db.collection('messages').document()
+        message_ref.set(message_data)
+        
+        # Format timestamp for response
+        timestamp = datetime.now()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Message sent successfully',
+            'messageId': message_ref.id,
+            'senderName': sender_data.get('name', 'You'),
+            'timestamp': timestamp.isoformat(),
+            'time_formatted': timestamp.strftime('%I:%M %p')
+        })
+        
+    except Exception as e:
+        print(f"Error sending message: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/mark-read/<message_id>', methods=['POST'])
+def api_mark_read(message_id):
+    """Mark a message as read"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        message_ref = db.collection('messages').document(message_id)
+        message_doc = message_ref.get()
+        
+        if not message_doc.exists:
+            return jsonify({'status': 'error', 'message': 'Message not found'}), 404
+        
+        message_data = message_doc.to_dict()
+        
+        # Only mark as read if current user is the receiver
+        if message_data.get('receiverId') == current_user_id:
+            message_ref.update({
+                'read': True,
+                'readAt': firestore.SERVER_TIMESTAMP
+            })
+        
+        return jsonify({'status': 'success', 'message': 'Message marked as read'})
+        
+    except Exception as e:
+        print(f"Error marking message as read: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/delete-message/<message_id>', methods=['DELETE'])
+def api_delete_message(message_id):
+    """Delete a message"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        message_ref = db.collection('messages').document(message_id)
+        message_doc = message_ref.get()
+        
+        if not message_doc.exists:
+            return jsonify({'status': 'error', 'message': 'Message not found'}), 404
+        
+        message_data = message_doc.to_dict()
+        
+        # Only allow deletion if current user is the sender
+        if message_data.get('senderId') != current_user_id:
+            return jsonify({'status': 'error', 'message': 'Unauthorized to delete this message'}), 403
+        
+        # Delete the message
+        message_ref.delete()
+        
+        return jsonify({'status': 'success', 'message': 'Message deleted successfully'})
+        
+    except Exception as e:
+        print(f"Error deleting message: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/search-users', methods=['GET'])
+def api_search_users_for_messages_v2():
+    """Search users for starting new conversations"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        query = request.args.get('q', '').strip().lower()
+        
+        # Get all users
+        users_ref = db.collection('users')
+        all_users = users_ref.stream()
+        
+        search_results = []
+        
+        for doc in all_users:
+            user = doc.to_dict()
+            user_id = doc.id
+            
+            # Skip current user
+            if user_id == current_user_id:
+                continue
+            
+            # Skip private profiles
+            if user.get('profileVisibility', 'Public') != 'Public':
+                continue
+            
+            # Get user data for search
+            user_name = user.get('name', '').lower()
+            user_headline = user.get('headline', '').lower()
+            offered_skills = [skill.lower() for skill in user.get('offeredSkill', [])]
+            requested_skills = [skill.lower() for skill in user.get('requestedSkill', [])]
+            
+            # Check if matches search query
+            matches = False
+            if not query:
+                matches = True  # Show all users if no query
+            else:
+                # Search in name
+                if query in user_name:
+                    matches = True
+                # Search in headline
+                elif query in user_headline:
+                    matches = True
+                # Search in skills
+                elif any(query in skill for skill in offered_skills):
+                    matches = True
+                elif any(query in skill for skill in requested_skills):
+                    matches = True
+            
+            if matches:
+                # Get location
+                city = user.get('city', '')
+                state = user.get('state', '')
+                location = ''
+                if city and state:
+                    location = f"{city}, {state}"
+                elif city:
+                    location = city
+                elif state:
+                    location = state
+                
+                search_results.append({
+                    'user_id': user_id,
+                    'name': user.get('name', 'Anonymous'),
+                    'headline': user.get('headline', ''),
+                    'photo_url': user.get('photo_url', '/static/default-profile.png'),
+                    'location': location,
+                    'offeredSkills': user.get('offeredSkill', [])[:3],
+                    'requestedSkills': user.get('requestedSkill', [])[:3]
+                })
+        
+        # Sort by name
+        search_results.sort(key=lambda x: x['name'].lower())
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(search_results),
+            'results': search_results[:50]
+        })
+        
+    except Exception as e:
+        print(f"Error searching users: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/clear-chat/<user_id>', methods=['POST'])
+def api_clear_chat(user_id):
+    """Clear chat history with a user"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        # Delete all messages between current user and target user
+        messages_query = db.collection('messages')\
+            .where('senderId', 'in', [current_user_id, user_id])\
+            .where('receiverId', 'in', [current_user_id, user_id])\
+            .stream()
+        
+        batch = db.batch()
+        message_count = 0
+        
+        for doc in messages_query:
+            batch.delete(doc.reference)
+            message_count += 1
+            
+            # Firestore batch limit is 500 operations
+            if message_count >= 450:
+                batch.commit()
+                batch = db.batch()
+                message_count = 0
+        
+        if message_count > 0:
+            batch.commit()
+        
+        return jsonify({
+            'status': 'success', 
+            'message': f'Chat cleared successfully. Deleted {message_count} messages.'
+        })
+        
+    except Exception as e:
+        print(f"Error clearing chat: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ------------------ Get Unread Count ------------------
+@main.route('/api/unread-count')
+def api_unread_count():
+    """Get total unread message count"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        unread_query = db.collection('messages')\
+            .where('receiverId', '==', current_user_id)\
+            .where('read', '==', False)\
+            .stream()
+        
+        count = len(list(unread_query))
+        
+        return jsonify({
+            'status': 'success',
+            'count': count
+        })
+        
+    except Exception as e:
+        print(f"Error getting unread count: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+
+# new 
+# ------------------ Message Routes - FIXED VERSION ------------------
+
+@main.route('/api/conversations')
+def api_conversations():
+    """Get all conversations for current user - FIXED VERSION"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        # Get all messages where current user is either sender or receiver
+        messages_ref = db.collection('messages')
+        
+        # Get messages where user is sender
+        sent_messages = messages_ref.where('senderId', '==', current_user_id).stream()
+        # Get messages where user is receiver
+        received_messages = messages_ref.where('receiverId', '==', current_user_id).stream()
+        
+        conversations_dict = {}
+        
+        # Process sent messages
+        for msg in sent_messages:
+            msg_data = msg.to_dict()
+            other_user_id = msg_data.get('receiverId')
+            
+            if other_user_id == current_user_id:
+                continue
+                
+            if other_user_id not in conversations_dict:
+                # Get user info
+                user_doc = db.collection('users').document(other_user_id).get()
+                user_data = user_doc.to_dict() if user_doc.exists else {}
+                
+                conversations_dict[other_user_id] = {
+                    'user_id': other_user_id,
+                    'user_name': user_data.get('name', 'Unknown'),
+                    'user_photo': user_data.get('photo_url', '/static/default-profile.png'),
+                    'last_message': msg_data.get('content', ''),
+                    'timestamp': msg_data.get('timestamp'),
+                    'is_sent_by_me': True,
+                    'unread_count': 0
+                }
+            else:
+                # Update if newer message
+                conv = conversations_dict[other_user_id]
+                msg_time = msg_data.get('timestamp')
+                conv_time = conv.get('timestamp')
+                
+                if msg_time and conv_time:
+                    # Compare timestamps
+                    msg_seconds = msg_time.seconds if hasattr(msg_time, 'seconds') else 0
+                    conv_seconds = conv_time.seconds if hasattr(conv_time, 'seconds') else 0
+                    
+                    if msg_seconds > conv_seconds:
+                        conv['last_message'] = msg_data.get('content', '')
+                        conv['timestamp'] = msg_time
+                        conv['is_sent_by_me'] = True
+        
+        # Process received messages
+        for msg in received_messages:
+            msg_data = msg.to_dict()
+            other_user_id = msg_data.get('senderId')
+            
+            if other_user_id == current_user_id:
+                continue
+                
+            if other_user_id not in conversations_dict:
+                # Get user info
+                user_doc = db.collection('users').document(other_user_id).get()
+                user_data = user_doc.to_dict() if user_doc.exists else {}
+                
+                # Count unread messages
+                unread_query = db.collection('messages')\
+                    .where('senderId', '==', other_user_id)\
+                    .where('receiverId', '==', current_user_id)\
+                    .where('read', '==', False)\
+                    .stream()
+                unread_count = len(list(unread_query))
+                
+                conversations_dict[other_user_id] = {
+                    'user_id': other_user_id,
+                    'user_name': user_data.get('name', 'Unknown'),
+                    'user_photo': user_data.get('photo_url', '/static/default-profile.png'),
+                    'last_message': msg_data.get('content', ''),
+                    'timestamp': msg_data.get('timestamp'),
+                    'is_sent_by_me': False,
+                    'unread_count': unread_count
+                }
+            else:
+                # Update if newer message
+                conv = conversations_dict[other_user_id]
+                msg_time = msg_data.get('timestamp')
+                conv_time = conv.get('timestamp')
+                
+                if msg_time and conv_time:
+                    # Compare timestamps
+                    msg_seconds = msg_time.seconds if hasattr(msg_time, 'seconds') else 0
+                    conv_seconds = conv_time.seconds if hasattr(conv_time, 'seconds') else 0
+                    
+                    if msg_seconds > conv_seconds:
+                        conv['last_message'] = msg_data.get('content', '')
+                        conv['timestamp'] = msg_time
+                        conv['is_sent_by_me'] = False
+        
+        # Convert to list and format
+        conversations_list = []
+        for conv in conversations_dict.values():
+            # Format timestamp
+            timestamp = conv.get('timestamp')
+            if timestamp:
+                if hasattr(timestamp, 'to_date'):
+                    dt = timestamp.to_date()
+                elif hasattr(timestamp, 'seconds'):
+                    dt = datetime.fromtimestamp(timestamp.seconds)
+                else:
+                    dt = datetime.now()
+                
+                # Calculate relative time
+                now = datetime.now()
+                diff = now - dt
+                
+                if diff.days == 0:
+                    conv['timestamp_formatted'] = dt.strftime('%I:%M %p')
+                elif diff.days == 1:
+                    conv['timestamp_formatted'] = 'Yesterday'
+                elif diff.days < 7:
+                    conv['timestamp_formatted'] = dt.strftime('%A')
+                else:
+                    conv['timestamp_formatted'] = dt.strftime('%b %d')
+            else:
+                conv['timestamp_formatted'] = 'Recently'
+            
+            conversations_list.append(conv)
+        
+        # Sort by timestamp (newest first)
+        conversations_list.sort(key=lambda x: x.get('timestamp').seconds if hasattr(x.get('timestamp'), 'seconds') else 0, reverse=True)
+        
+        return jsonify({
+            'status': 'success',
+            'conversations': conversations_list
+        })
+        
+    except Exception as e:
+        print(f"Error fetching conversations: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/messages/<user_id>')
+def api_messages(user_id):
+    """Get messages between current user and target user - FIXED VERSION"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        # Get messages using two separate queries to avoid composite index issues
+        messages = []
+        
+        # Get messages where current user is sender and target is receiver
+        sent_query = db.collection('messages')\
+            .where('senderId', '==', current_user_id)\
+            .where('receiverId', '==', user_id)\
+            .order_by('timestamp')
+        
+        sent_messages = sent_query.stream()
+        for doc in sent_messages:
+            msg_data = doc.to_dict()
+            msg_data['id'] = doc.id
+            messages.append(msg_data)
+        
+        # Get messages where current user is receiver and target is sender
+        received_query = db.collection('messages')\
+            .where('senderId', '==', user_id)\
+            .where('receiverId', '==', current_user_id)\
+            .order_by('timestamp')
+        
+        received_messages = received_query.stream()
+        for doc in received_messages:
+            msg_data = doc.to_dict()
+            msg_data['id'] = doc.id
+            messages.append(msg_data)
+        
+        # Sort all messages by timestamp
+        messages.sort(key=lambda x: x.get('timestamp').seconds if hasattr(x.get('timestamp'), 'seconds') else 0)
+        
+        # Format messages for frontend
+        formatted_messages = []
+        for msg in messages:
+            formatted_msg = msg.copy()
+            
+            # Convert timestamp
+            timestamp = msg.get('timestamp')
+            if timestamp:
+                if hasattr(timestamp, 'to_date'):
+                    dt = timestamp.to_date()
+                elif hasattr(timestamp, 'seconds'):
+                    dt = datetime.fromtimestamp(timestamp.seconds)
+                else:
+                    dt = datetime.now()
+                
+                formatted_msg['datetime'] = dt.isoformat()
+                formatted_msg['timestamp'] = dt.isoformat()
+            
+            formatted_messages.append(formatted_msg)
+        
+        # Mark received messages as read
+        unread_query = db.collection('messages')\
+            .where('senderId', '==', user_id)\
+            .where('receiverId', '==', current_user_id)\
+            .where('read', '==', False)\
+            .stream()
+        
+        batch = db.batch()
+        for doc in unread_query:
+            doc_ref = db.collection('messages').document(doc.id)
+            batch.update(doc_ref, {
+                'read': True,
+                'readAt': firestore.SERVER_TIMESTAMP
+            })
+        
+        if batch._write_pbs:  # Only commit if there are updates
+            batch.commit()
+        
+        # Get user info
+        user_doc = db.collection('users').document(user_id).get()
+        user_data = user_doc.to_dict() if user_doc.exists else {}
+        
+        return jsonify({
+            'status': 'success',
+            'messages': formatted_messages,
+            'user_info': {
+                'name': user_data.get('name', 'User'),
+                'photo_url': user_data.get('photo_url', '/static/default-profile.png'),
+                'user_id': user_id
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error fetching messages: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/send-message', methods=['POST'])
+def api_send_message():
+    """Send a new message - FIXED VERSION"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        data = request.get_json()
+        receiver_id = data.get('receiverId')
+        content = data.get('content', '').strip()
+        
+        if not receiver_id:
+            return jsonify({'status': 'error', 'message': 'Receiver ID is required'}), 400
+        
+        if not content:
+            return jsonify({'status': 'error', 'message': 'Message content is required'}), 400
+        
+        # Get sender info
+        sender_doc = db.collection('users').document(current_user_id).get()
+        sender_data = sender_doc.to_dict() if sender_doc.exists else {}
+        
+        # Get receiver info
+        receiver_doc = db.collection('users').document(receiver_id).get()
+        receiver_data = receiver_doc.to_dict() if receiver_doc.exists else {}
+        
+        # Create message document
+        message_data = {
+            'senderId': current_user_id,
+            'receiverId': receiver_id,
+            'content': content,
+            'timestamp': firestore.SERVER_TIMESTAMP,
+            'read': False,
+            'type': 'text',
+            'senderName': sender_data.get('name', 'Unknown'),
+            'receiverName': receiver_data.get('name', 'Unknown')
+        }
+        
+        # Add to Firestore
+        message_ref = db.collection('messages').document()
+        message_ref.set(message_data)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Message sent successfully',
+            'messageId': message_ref.id
+        })
+        
+    except Exception as e:
+        print(f"Error sending message: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/search-users', methods=['GET'])
+def api_search_users_for_messages():
+    """Search users for starting new conversations - FIXED VERSION"""
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
+    
+    try:
+        query = request.args.get('q', '').strip().lower()
+        
+        # Get all users
+        users_ref = db.collection('users')
+        users_query = users_ref.where('profileVisibility', '==', 'Public').stream()
+        
+        search_results = []
+        
+        for doc in users_query:
+            user = doc.to_dict()
+            user_id = doc.id
+            
+            # Skip current user
+            if user_id == current_user_id:
+                continue
+            
+            # Get user data for search
+            user_name = user.get('name', '').lower()
+            user_headline = user.get('headline', '').lower()
+            offered_skills = [skill.lower() for skill in user.get('offeredSkill', [])]
+            
+            # Check if matches search query
+            matches = False
+            if not query:
+                matches = True  # Show all users if no query
+            else:
+                # Search in name
+                if query in user_name:
+                    matches = True
+                # Search in headline
+                elif query in user_headline:
+                    matches = True
+                # Search in skills
+                elif any(query in skill for skill in offered_skills):
+                    matches = True
+            
+            if matches:
+                search_results.append({
+                    'user_id': user_id,
+                    'name': user.get('name', 'Anonymous'),
+                    'headline': user.get('headline', ''),
+                    'photo_url': user.get('photo_url', '/static/default-profile.png'),
+                    'offeredSkills': user.get('offeredSkill', [])[:3]
+                })
+        
+        # Sort by name
+        search_results.sort(key=lambda x: x['name'].lower())
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(search_results),
+            'results': search_results[:20]
+        })
+        
+    except Exception as e:
+        print(f"Error searching users: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500

@@ -21,3 +21,5 @@ app/serviceAccountKey.json
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+run.py
